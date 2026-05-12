@@ -1,0 +1,1 @@
+try { var t = localStorage.getItem("theme") || "dark"; document.documentElement.classList.toggle("dark", t === "dark"); document.documentElement.classList.toggle("light", t === "light"); } catch (e) {}

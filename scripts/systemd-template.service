@@ -1,0 +1,29 @@
+# Lab Fleet systemd unit template (Linux).
+#
+# Install:
+#   1. Edit User= and WorkingDirectory= for your environment.
+#   2. sudo cp scripts/systemd-template.service /etc/systemd/system/lab-fleet.service
+#   3. sudo systemctl daemon-reload
+#   4. sudo systemctl enable --now lab-fleet
+#   5. systemctl status lab-fleet
+#
+# Logs:   journalctl -u lab-fleet -f
+
+[Unit]
+Description=Lab Fleet — private compute coordinator
+Documentation=https://github.com/fthrvi/fleet
+After=network-online.target tailscaled.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=YOUR_USERNAME
+WorkingDirectory=/home/YOUR_USERNAME/lab-fleet
+ExecStart=/usr/bin/npm run start
+Environment="NODE_ENV=production"
+Environment="PATH=/usr/local/bin:/usr/bin:/bin"
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

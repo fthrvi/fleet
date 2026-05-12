@@ -1,0 +1,295 @@
+// Lab Fleet — private compute coordinator.
+// SQLite for portability: the entire DB lives at ./data/lab.db.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:../data/lab.db"
+}
+
+model Machine {
+  id                Int      @id @default(autoincrement())
+  name              String   @unique
+  tailscaleHost     String
+  tailscaleIp       String?
+  sshUser           String
+  cpuCores          Int?
+  ramGb             Float?
+  diskFreeGb        Float?
+  cpuPercent        Float?
+  arch              String?
+  osVersion         String?
+  // Provisioning state: NEW (just discovered, not set up) | READY (worker installed) | DISABLED (user excluded)
+  status            String   @default("NEW")
+  // Last successful ssh probe
+  lastSeenAt        DateTime?
+  // Default thread count for jobs that don't specify one
+  defaultThreads    Int?
+  tags              String?  // comma-separated free-form
+  notes             String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  jobAssignments    JobAssignment[]
+}
+
+model JobTemplate {
+  id           Int      @id @default(autoincrement())
+  name         String   @unique
+  description  String?
+  // kind: shell | transcribe | rsync | setup-mac-worker
+  kind         String
+  // JSON config blob, validated per-kind in code
+  recipeJson   String
+  defaultThreads Int?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  jobs         Job[]
+  schedules    Schedule[]
+}
+
+model Job {
+  id           Int      @id @default(autoincrement())
+  templateId   Int?
+  template     JobTemplate? @relation(fields: [templateId], references: [id])
+  kind         String
+  recipeJson   String
+  status       String   @default("PENDING")
+  startedAt    DateTime?
+  finishedAt   DateTime?
+  error        String?
+  createdAt    DateTime @default(now())
+  triggeredBy  String   @default("manual")
+  scheduleId   Int?
+  maxRetries   Int      @default(0)
+
+  assignments  JobAssignment[]
+  logs         JobLog[]
+}
+
+// One row per (job, machine) pairing
+model JobAssignment {
+  id           Int      @id @default(autoincrement())
+  jobId        Int
+  job          Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  machineId    Int
+  machine      Machine  @relation(fields: [machineId], references: [id])
+  // PENDING | RUNNING | SUCCESS | FAILED | SKIPPED
+  status       String   @default("PENDING")
+  // For transcription-like jobs: how many units (sessions) this machine handled
+  unitsDone    Int      @default(0)
+  unitsTotal   Int?
+  startedAt    DateTime?
+  finishedAt   DateTime?
+  exitCode     Int?
+  stdout       String?  // truncated tail of last run
+  stderr       String?
+  retries      Int      @default(0)
+
+  @@unique([jobId, machineId])
+}
+
+model JobLog {
+  id        Int      @id @default(autoincrement())
+  jobId     Int
+  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  // optional machine that produced this line
+  machine   String?
+  // stdout | stderr | system
+  stream    String
+  line      String
+  ts        DateTime @default(now())
+
+  @@index([jobId, ts])
+}
+
+model Schedule {
+  id                 Int      @id @default(autoincrement())
+  // Exactly ONE of these two is set: a template-based schedule, or a workflow-based schedule
+  templateId         Int?
+  template           JobTemplate? @relation(fields: [templateId], references: [id])
+  workflowId         Int?
+  name               String
+  cronExpr           String
+  enabled            Boolean  @default(true)
+  machineIdsJson     String   @default("[]")
+  recipeOverrideJson String?
+  maxRetries         Int      @default(0)
+  lastRunAt          DateTime?
+  nextRunAt          DateTime?
+  lastJobId          Int?
+  lastWorkflowRunId  Int?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+// Generic key/value for app settings (default SSH key path, hub identity, etc.)
+model Setting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+// Workflow — a sequential chain of template invocations. Each step dispatches
+// a regular Job so all the existing log streaming + activity events apply.
+// Steps run in order; a failed step stops the workflow unless its condition
+// is "always".
+model Workflow {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  steps WorkflowStep[]
+  runs  WorkflowRun[]
+}
+
+model WorkflowStep {
+  id                 Int      @id @default(autoincrement())
+  workflowId         Int
+  workflow           Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  position           Int
+  name               String
+  templateId         Int
+  machineIdsJson     String   @default("[]")
+  recipeOverrideJson String?
+  // "on-success" — only runs if all previous succeeded
+  // "always"     — runs regardless of previous step's outcome
+  condition          String   @default("on-success")
+  createdAt          DateTime @default(now())
+
+  runSteps WorkflowRunStep[]
+
+  @@unique([workflowId, position])
+}
+
+model WorkflowRun {
+  id         Int      @id @default(autoincrement())
+  workflowId Int
+  workflow   Workflow @relation(fields: [workflowId], references: [id])
+  status     String   @default("PENDING")  // PENDING | RUNNING | SUCCESS | FAILED | CANCELLED
+  startedAt  DateTime?
+  finishedAt DateTime?
+  triggeredBy String   @default("manual")
+  scheduleId  Int?
+  createdAt  DateTime @default(now())
+
+  steps WorkflowRunStep[]
+}
+
+model WorkflowRunStep {
+  id        Int          @id @default(autoincrement())
+  runId     Int
+  run       WorkflowRun  @relation(fields: [runId], references: [id], onDelete: Cascade)
+  stepId    Int
+  step      WorkflowStep @relation(fields: [stepId], references: [id])
+  position  Int
+  status    String       @default("PENDING")  // PENDING | RUNNING | SUCCESS | FAILED | SKIPPED
+  jobId     Int?
+  startedAt DateTime?
+  finishedAt DateTime?
+
+  @@index([runId, position])
+}
+
+// Time-series samples for the per-machine monitoring graphs. Written by a
+// background sampler (src/lib/sampler.ts) every SAMPLE_INTERVAL_SEC (default 60).
+// Retention is enforced by trimming rows older than SAMPLE_RETENTION_DAYS.
+model MetricSample {
+  id          Int      @id @default(autoincrement())
+  machineId   Int
+  ts          DateTime @default(now())
+  cpuPercent  Float?
+  ramUsedGb   Float?
+  ramTotalGb  Float?
+  diskFreeGb  Float?
+  loadAvg1    Float?
+  loadAvg5    Float?
+  loadAvg15   Float?
+
+  @@index([machineId, ts])
+}
+
+// Per-service health check (HTTP GET on a URL, or TCP connect to host:port).
+// Probed by the scheduler tick on each check's own intervalSec.
+model HealthCheck {
+  id              Int      @id @default(autoincrement())
+  name            String   @unique
+  kind            String   // "http" | "tcp"
+  target          String   // url for http, "host:port" for tcp
+  intervalSec     Int      @default(60)
+  timeoutMs       Int      @default(5000)
+  expectedStatus  Int?     // for http: expected status code, default 200
+  enabled         Boolean  @default(true)
+  // Last probe state
+  lastStatus      String?  // "up" | "down" | "unknown"
+  lastLatencyMs   Int?
+  lastError       String?
+  lastProbeAt     DateTime?
+  // Notify on transitions
+  notifyOnDown    Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// One-click app installs from the catalog. Each row is a deployment of a
+// catalog app (identified by slug) on a specific machine. The compose YAML
+// + resolved env vars are stored so we can show the user what's running and
+// support clean updates / uninstalls.
+model InstalledApp {
+  id          Int      @id @default(autoincrement())
+  slug        String
+  machineId   Int
+  name        String
+  // INSTALLING | RUNNING | STOPPED | FAILED
+  status      String   @default("INSTALLING")
+  // Comma-separated host ports (e.g. "8080,3001"), for the "Open" link
+  ports       String?
+  envJson     String   @default("{}")
+  composeYaml String
+  installPath String   // e.g. ~/lab-fleet-apps/vaultwarden
+  lastJobId   Int?
+  installedAt DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([slug, machineId])
+}
+
+// Notification channels (Discord webhook URL, Pushover creds, etc.). Notify
+// helpers (src/lib/notify.ts) fan out to every enabled channel.
+model NotificationChannel {
+  id           Int      @id @default(autoincrement())
+  name         String   @unique
+  kind         String   // "discord" | "pushover" | "slack" | "macos"
+  // JSON-encoded config (e.g. discord: { webhookUrl })
+  configJson   String
+  enabled      Boolean  @default(true)
+  // What to notify about, bitmask-like JSON: { jobFailed, jobSucceeded, scheduleFireFailed, machineOffline, healthDown, healthRecovered }
+  triggersJson String   @default("{\"jobFailed\":true,\"scheduleFireFailed\":true,\"machineOffline\":true,\"healthDown\":true,\"healthRecovered\":true}")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+// Real-time activity feed. Every meaningful change (job state, machine
+// probe, schedule fire, manual action) writes a row here. The dashboard
+// polls the latest N for a Slack-style live feed.
+model ActivityEvent {
+  id        Int      @id @default(autoincrement())
+  ts        DateTime @default(now())
+  // job | machine | schedule | system
+  category  String
+  // dispatched | started | finished | failed | retried | probed | discovered | ...
+  kind      String
+  message   String
+  machineId Int?
+  jobId     Int?
+  scheduleId Int?
+  level     String   @default("info")  // info | warn | error | success
+
+  @@index([ts])
+}

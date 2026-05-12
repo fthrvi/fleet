@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Lab Fleet LaunchAgent template (macOS).
+
+  Install:
+    1. Edit the two YOUR_USERNAME placeholders below.
+    2. Edit Program / WorkingDirectory to point at your lab-fleet checkout.
+    3. Copy to ~/Library/LaunchAgents/dev.labfleet.hub.plist
+    4. launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/dev.labfleet.hub.plist
+    5. launchctl print gui/$(id -u)/dev.labfleet.hub  (verify state=running)
+
+  Uninstall:
+    launchctl bootout gui/$(id -u) ~/Library/LaunchAgents/dev.labfleet.hub.plist
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>dev.labfleet.hub</string>
+
+  <key>WorkingDirectory</key>
+  <string>/Users/YOUR_USERNAME/lab-fleet</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>-lc</string>
+    <string>npm run start 2>&amp;1</string>
+  </array>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    <key>HOME</key>
+    <string>/Users/YOUR_USERNAME</string>
+  </dict>
+
+  <key>RunAtLoad</key>
+  <true/>
+
+  <key>KeepAlive</key>
+  <true/>
+
+  <key>StandardOutPath</key>
+  <string>/Users/YOUR_USERNAME/lab-fleet/logs/stdout.log</string>
+
+  <key>StandardErrorPath</key>
+  <string>/Users/YOUR_USERNAME/lab-fleet/logs/stderr.log</string>
+</dict>
+</plist>
