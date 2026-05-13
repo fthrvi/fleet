@@ -14,7 +14,6 @@
 
 ## Table of contents
 
-- [Demo](#demo)
 - [Why](#why)
 - [Architecture](#architecture)
 - [Features](#features)
@@ -29,26 +28,6 @@
 - [License](#license)
 
 ---
-
-## Demo
-
-<!-- Drop screenshots into docs/screenshots/ and link them here.
-     Suggested set:
-       fleet.png         — Fleet page with cards + sparklines + activity feed
-       terminal.png      — Browser terminal modal
-       workflow-run.png  — Workflow run with step badges
-       machine.png       — Machine detail with Recharts + Docker panel
-       apps.png          — App catalog grid
-       notifications.png — Discord notification screenshot
--->
-
-| Fleet view | Browser terminal |
-|---|---|
-| ![Fleet](docs/screenshots/fleet.png) | ![Terminal](docs/screenshots/terminal.png) |
-
-| App catalog | Machine detail |
-|---|---|
-| ![Apps](docs/screenshots/apps.png) | ![Machine](docs/screenshots/machine.png) |
 
 ---
 
