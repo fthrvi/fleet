@@ -111,4 +111,56 @@ The repo is ready for `git push` + GitHub README + Show HN when:
 
 ---
 
-*Last updated: 2026-05-12*
+## Operating tips for big batch jobs
+
+These apply to any long-running fan-out workload (the bundled transcription
+template, but also large rsync syncs, batch git-deploys, mass Docker installs).
+
+### Speed up CPU-bound work
+
+| Tuning | Speedup | Tradeoff |
+|---|---|---|
+| Run 2+ worker instances per machine (use all cores, not just 8) | ~2× | Slightly more memory pressure |
+| Use a distilled / smaller model variant (e.g. `large-v3-turbo`) | ~8× | Small accuracy drop |
+| Use a domain-specialised model (e.g. `medium.en` for English transcription) | ~3× | Limited to one domain |
+| Add a GPU machine to the fleet | ~10–15× per machine | Need the hardware |
+
+A combination of "smaller model + more workers per box" usually wins on a
+CPU-only homelab. Always measure with a small canary before committing the
+full run.
+
+### Coordination gotchas to avoid
+
+- **Mixed claim-aware and non-claim-aware workers double-process work.**
+  If part of your fleet runs through Lab Fleet's claim coordinator and part
+  runs through a legacy shell loop that just checks "has output file been
+  written," two machines can race the same input. Pick one model and stick
+  with it.
+- **Workers that exit on empty-queue can leave a queue half-drained.** The
+  bundled `worker.sh` exits after 3 idle polls, which is fine when the
+  queue is genuinely empty — but if stale claims age out *after* the
+  worker quit, the remaining work sits unowned. Either keep workers alive
+  longer or set up a "watchdog" schedule that restarts them periodically.
+- **Sanitised env on the hub strips `SSH_AUTH_SOCK`.** If you launch the
+  dashboard under `env -i` or similar, Probe + Terminal break because
+  node-ssh / ssh2 can't unlock a passphrase-protected key. Preserve
+  `SSH_AUTH_SOCK` (or generate a dedicated passphrase-less key for
+  Lab Fleet).
+
+### Recipe for a smooth big run
+
+1. **Pre-stage** any large data (models, base images, datasets) on every
+   worker before the run starts. Use `rsync-from-hub` once, run the job
+   many times.
+2. **Set up notifications** (Discord / Pushover / macOS) before kicking
+   off, so you get pinged on failure overnight instead of finding it in
+   the morning.
+3. **Run a 3-item canary** through the full pipeline first to verify
+   end-to-end. Only then dispatch the full batch.
+4. **Pick the dashboard's coordinator OR a shell loop, never both.** The
+   `transcribe-mp4s-worker` template is the canonical way to fan out
+   workers — drives the same queue without the dual-control problems.
+
+---
+
+*Last updated: 2026-05-13*
