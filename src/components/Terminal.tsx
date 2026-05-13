@@ -43,7 +43,11 @@ export function Terminal({ machineId, machineName, hubHost, onClose }: Props) {
     ws.binaryType = "arraybuffer";
 
     ws.onopen = () => {
-      // Send initial size
+      // Clear any error from a prior connection attempt (React StrictMode
+      // double-mounts effects in dev — first attempt may have errored before
+      // the server fix landed).
+      setError(null);
+      setStatus("connecting");
       ws.send(JSON.stringify({ type: "resize", cols: term.cols, rows: term.rows }));
     };
     ws.onmessage = (e) => {
@@ -51,8 +55,10 @@ export function Terminal({ machineId, machineName, hubHost, onClose }: Props) {
         if (e.data.startsWith("{")) {
           try {
             const msg = JSON.parse(e.data);
-            if (msg.type === "ready") setStatus("ready");
-            else if (msg.type === "error") {
+            if (msg.type === "ready") {
+              setError(null);
+              setStatus("ready");
+            } else if (msg.type === "error") {
               setError(msg.message);
               setStatus("error");
             }
