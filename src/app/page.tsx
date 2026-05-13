@@ -18,7 +18,7 @@ export default async function Home() {
 
   const peerByName = new Map(peers.map((p) => [p.name, p]));
   const registeredNames = new Set(machines.map((m) => m.name));
-  const unregistered = peers.filter((p) => !p.isSelf && !registeredNames.has(p.name));
+  const unregistered = peers.filter((p) => !registeredNames.has(p.name));
 
   return (
     <div className="space-y-6">
