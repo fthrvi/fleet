@@ -85,14 +85,14 @@ Lower priority. Build only if a real use case surfaces.
 
 For maximum impact on a GitHub launch:
 
-1. **Phase A** (1.5 h) — polish what's there
-2. **Phase B** (3 h) — app catalog (the killer feature)
-3. **Phase D** (45 min) — backups + launchd template (so people can actually deploy it)
-4. **Phase E** (1 h) — screenshots + README polish for launch
-5. **Phase C** (45 min) — workflow variables (after launch, based on user feedback)
+1. **Phase A** ✅
+2. **Phase B** ✅
+3. **Phase D** ✅
+4. **Phase E** ✅
+5. **Phase C** ✅
 6. **Phase F** — only as needed
 
-Total to "launch-ready": ~6.5 h focused build.
+**Status: launch-ready.** Only screenshots in `docs/screenshots/` remain before the README looks fully polished. Phase F items are pure enhancements; ship them when there's a real ask.
 
 ---
 

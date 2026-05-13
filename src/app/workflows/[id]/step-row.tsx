@@ -13,6 +13,7 @@ interface Step {
   templateName: string;
   templateKind: string;
   condition: string;
+  whenExpr?: string | null;
   machineNames: string;
 }
 
@@ -34,9 +35,15 @@ export function StepRow({ step }: { step: Step }) {
         </div>
       </div>
       <div className="flex items-center gap-2">
-        <Badge variant={step.condition === "always" ? "secondary" : "outline"}>
-          {step.condition}
-        </Badge>
+        {step.whenExpr ? (
+          <Badge variant="outline" title={step.whenExpr} className="mono max-w-[280px] truncate">
+            when: {step.whenExpr}
+          </Badge>
+        ) : (
+          <Badge variant={step.condition === "always" ? "secondary" : "outline"}>
+            {step.condition}
+          </Badge>
+        )}
         <Button
           size="sm"
           variant="ghost"

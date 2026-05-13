@@ -158,9 +158,13 @@ model WorkflowStep {
   templateId         Int
   machineIdsJson     String   @default("[]")
   recipeOverrideJson String?
-  // "on-success" — only runs if all previous succeeded
-  // "always"     — runs regardless of previous step's outcome
+  // "on-success" | "always"
   condition          String   @default("on-success")
+  // Optional JS-like expression evaluated against the run context. When set,
+  // overrides `condition`. Examples:
+  //   steps.build.exitCode == 0
+  //   steps.test.status == 'SUCCESS' && steps.test.outputs.passed == 'true'
+  whenExpr           String?
   createdAt          DateTime @default(now())
 
   runSteps WorkflowRunStep[]
@@ -183,16 +187,20 @@ model WorkflowRun {
 }
 
 model WorkflowRunStep {
-  id        Int          @id @default(autoincrement())
-  runId     Int
-  run       WorkflowRun  @relation(fields: [runId], references: [id], onDelete: Cascade)
-  stepId    Int
-  step      WorkflowStep @relation(fields: [stepId], references: [id])
-  position  Int
-  status    String       @default("PENDING")  // PENDING | RUNNING | SUCCESS | FAILED | SKIPPED
-  jobId     Int?
-  startedAt DateTime?
-  finishedAt DateTime?
+  id          Int          @id @default(autoincrement())
+  runId       Int
+  run         WorkflowRun  @relation(fields: [runId], references: [id], onDelete: Cascade)
+  stepId      Int
+  step        WorkflowStep @relation(fields: [stepId], references: [id])
+  position    Int
+  status      String       @default("PENDING")  // PENDING | RUNNING | SUCCESS | FAILED | SKIPPED
+  jobId       Int?
+  exitCode    Int?
+  // JSON object of named outputs harvested from the step's stdout lines
+  // matching `::output name=KEY::VALUE`
+  outputsJson String       @default("{}")
+  startedAt   DateTime?
+  finishedAt  DateTime?
 
   @@index([runId, position])
 }

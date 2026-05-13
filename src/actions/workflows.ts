@@ -26,11 +26,12 @@ export async function deleteWorkflow(id: number) {
 
 const addStepSchema = z.object({
   workflowId: z.number().int(),
-  name: z.string().min(1),
+  name: z.string().min(1).regex(/^[A-Za-z_][A-Za-z0-9_-]*$/, "Step name must be a valid identifier (letters, digits, underscore, dash)"),
   templateId: z.number().int(),
   machineIds: z.array(z.number().int()).min(1),
   recipeOverrideJson: z.string().optional(),
   condition: z.enum(["on-success", "always"]).default("on-success"),
+  whenExpr: z.string().optional(),
 });
 
 export async function addWorkflowStep(input: z.infer<typeof addStepSchema>) {
@@ -60,6 +61,7 @@ export async function addWorkflowStep(input: z.infer<typeof addStepSchema>) {
       machineIdsJson: JSON.stringify(parsed.machineIds),
       recipeOverrideJson: parsed.recipeOverrideJson ?? null,
       condition: parsed.condition,
+      whenExpr: parsed.whenExpr?.trim() || null,
     },
   });
   revalidatePath(`/workflows/${parsed.workflowId}`);

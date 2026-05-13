@@ -17,6 +17,7 @@ export function WorkflowStepForm({ workflowId, templates, machines }: Props) {
   const [templateId, setTemplateId] = useState<number | null>(templates[0]?.id ?? null);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [condition, setCondition] = useState<"on-success" | "always">("on-success");
+  const [whenExpr, setWhenExpr] = useState("");
   const [recipeOverride, setRecipeOverride] = useState("");
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -43,6 +44,7 @@ export function WorkflowStepForm({ workflowId, templates, machines }: Props) {
         templateId,
         machineIds: Array.from(selected),
         condition,
+        whenExpr: whenExpr.trim() || undefined,
         recipeOverrideJson: recipeOverride.trim() || undefined,
       });
       if (!r.ok) {
@@ -52,6 +54,7 @@ export function WorkflowStepForm({ workflowId, templates, machines }: Props) {
       setName("");
       setSelected(new Set());
       setRecipeOverride("");
+      setWhenExpr("");
       router.refresh();
     });
   }
@@ -114,10 +117,12 @@ export function WorkflowStepForm({ workflowId, templates, machines }: Props) {
             value={condition}
             onChange={(e) => setCondition(e.target.value as "on-success" | "always")}
             className="mono w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            disabled={!!whenExpr.trim()}
           >
             <option value="on-success">on-success (skip if a prior step failed)</option>
             <option value="always">always (run regardless)</option>
           </select>
+          {whenExpr.trim() && <div className="mt-1 text-xs text-muted-foreground">Ignored when `whenExpr` is set.</div>}
         </div>
         <div>
           <label className="mb-1 block text-sm font-medium">Recipe override JSON (optional)</label>
@@ -125,9 +130,24 @@ export function WorkflowStepForm({ workflowId, templates, machines }: Props) {
             type="text"
             value={recipeOverride}
             onChange={(e) => setRecipeOverride(e.target.value)}
-            placeholder='e.g. {"command": "uptime"}'
+            placeholder='e.g. {"command": "echo ${{ steps.build.outputs.tag }}"}'
             className="mono w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
           />
+        </div>
+      </div>
+
+      <div>
+        <label className="mb-1 block text-sm font-medium">whenExpr (advanced — overrides Run condition)</label>
+        <input
+          type="text"
+          value={whenExpr}
+          onChange={(e) => setWhenExpr(e.target.value)}
+          placeholder="e.g. steps.build.exitCode == 0 && steps.test.outputs.passed == 'true'"
+          className="mono w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+        />
+        <div className="mt-1 text-xs text-muted-foreground">
+          Access: <span className="mono">steps.&lt;name&gt;.{`{status,exitCode,outputs.<key>}`}</span> ·{" "}
+          <span className="mono">run.{`{id,triggeredBy}`}</span>. Operators: == != &gt; &lt; &amp;&amp; || !
         </div>
       </div>
 

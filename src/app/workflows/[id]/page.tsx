@@ -78,6 +78,7 @@ export default async function WorkflowDetailPage({
                     templateName: tmpl?.name ?? `template #${s.templateId}`,
                     templateKind: tmpl?.kind ?? "?",
                     condition: s.condition,
+                    whenExpr: s.whenExpr,
                     machineNames,
                   }}
                 />
