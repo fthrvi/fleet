@@ -102,7 +102,8 @@ export async function syncFromTailscale() {
   const peers = await tailscaleStatus();
   const created: string[] = [];
   for (const peer of peers) {
-    if (peer.isSelf) continue;
+    // We do include self — the hub can run jobs on itself, and showing it on
+    // the dashboard makes the fleet feel complete.
     const existing = await db.machine.findUnique({ where: { name: peer.name } });
     if (existing) {
       await db.machine.update({

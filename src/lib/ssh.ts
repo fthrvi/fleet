@@ -1,6 +1,41 @@
 import { NodeSSH } from "node-ssh";
-import { homedir } from "node:os";
+import { homedir, networkInterfaces } from "node:os";
 import path from "node:path";
+import { execFile as execFileCb } from "node:child_process";
+import { promisify } from "node:util";
+
+const execFile = promisify(execFileCb);
+
+/**
+ * Returns the set of IPv4 addresses bound to local interfaces. Used to detect
+ * "this is the hub" when probing.
+ */
+function localIPv4s(): Set<string> {
+  const out = new Set<string>();
+  const ifs = networkInterfaces();
+  for (const list of Object.values(ifs)) {
+    if (!list) continue;
+    for (const addr of list) {
+      if (addr.family === "IPv4") out.add(addr.address);
+    }
+  }
+  return out;
+}
+
+async function isLocalTarget(host: string): Promise<boolean> {
+  const locals = localIPv4s();
+  if (locals.has(host)) return true;
+  // host might be a Tailscale hostname — try resolving via `tailscale ip -4`
+  // for the local machine and compare.
+  try {
+    const { stdout } = await execFile("tailscale", ["ip", "-4"]);
+    const selfIp = stdout.trim().split("\n")[0]?.trim();
+    if (selfIp && (host === selfIp || locals.has(selfIp))) return true;
+  } catch {
+    // ignore — fall through to false
+  }
+  return false;
+}
 
 export interface SshTarget {
   host: string;
@@ -46,6 +81,11 @@ export async function probeMachine(target: SshTarget): Promise<{
   osVersion?: string;
   error?: string;
 }> {
+  // If the target is the local machine, probe locally to avoid needing
+  // SSH-to-self set up.
+  if (await isLocalTarget(target.host)) {
+    return probeLocal();
+  }
   let ssh: NodeSSH | undefined;
   try {
     ssh = await connect(target);
@@ -87,6 +127,50 @@ echo "CPU_PCT=$CPU_PCT"`;
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
   } finally {
     ssh?.dispose();
+  }
+}
+
+async function probeLocal(): Promise<{
+  ok: boolean;
+  hostname?: string;
+  cpuCores?: number;
+  ramGb?: number;
+  diskFreeGb?: number;
+  cpuPercent?: number;
+  arch?: string;
+  osVersion?: string;
+  error?: string;
+}> {
+  try {
+    const sh = `\
+HOST=$(hostname)
+ARCH=$(uname -m)
+OS=$(uname -sr)
+NCPU=$(getconf _NPROCESSORS_ONLN 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 0)
+RAM_BYTES=$(sysctl -n hw.memsize 2>/dev/null || awk '/MemTotal/ {print $2 * 1024}' /proc/meminfo 2>/dev/null || echo 0)
+DISK_FREE=$(df -k "$HOME" | awk 'NR==2 {print $4}')
+CPU_PCT=$(top -l 1 -n 0 2>/dev/null | awk '/CPU usage/ {gsub(/%/,""); print $3 + $5}' || echo 0)
+echo "HOST=$HOST"; echo "ARCH=$ARCH"; echo "OS=$OS"
+echo "NCPU=$NCPU"; echo "RAM_BYTES=$RAM_BYTES"
+echo "DISK_FREE_KB=$DISK_FREE"; echo "CPU_PCT=$CPU_PCT"`;
+    const { stdout } = await execFile("bash", ["-lc", sh]);
+    const kv: Record<string, string> = {};
+    for (const line of stdout.split("\n")) {
+      const m = line.match(/^([A-Z_]+)=(.*)$/);
+      if (m) kv[m[1]] = m[2];
+    }
+    return {
+      ok: true,
+      hostname: kv.HOST,
+      arch: kv.ARCH,
+      osVersion: kv.OS,
+      cpuCores: kv.NCPU ? Number(kv.NCPU) : undefined,
+      ramGb: kv.RAM_BYTES ? Number(kv.RAM_BYTES) / 1024 ** 3 : undefined,
+      diskFreeGb: kv.DISK_FREE_KB ? Number(kv.DISK_FREE_KB) / 1024 / 1024 : undefined,
+      cpuPercent: kv.CPU_PCT ? Number(kv.CPU_PCT) : undefined,
+    };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
   }
 }
 
