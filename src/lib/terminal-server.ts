@@ -66,9 +66,6 @@ async function handleConnection(ws: WebSocket, url: string) {
     return;
   }
 
-  const keyPath = path.join(homedir(), ".ssh", "id_ed25519");
-  const privateKey = fs.readFileSync(keyPath);
-
   const conn = new Ssh2Client();
   let shellStream: import("ssh2").ClientChannel | undefined;
   let closed = false;
@@ -132,10 +129,22 @@ async function handleConnection(ws: WebSocket, url: string) {
   ws.on("close", () => cleanup());
   ws.on("error", () => cleanup());
 
-  conn.connect({
+  // Prefer the user's ssh-agent if available (handles passphrase-protected
+  // keys). Fall back to disk key only when no agent is set.
+  const agentSock = process.env.SSH_AUTH_SOCK;
+  const connectOpts: Parameters<typeof conn.connect>[0] = {
     host: machine.tailscaleHost,
     username: machine.sshUser,
-    privateKey,
     readyTimeout: 8000,
-  });
+  };
+  if (agentSock) {
+    connectOpts.agent = agentSock;
+  } else {
+    const keyPath = path.join(homedir(), ".ssh", "id_ed25519");
+    connectOpts.privateKey = fs.readFileSync(keyPath);
+    if (process.env.SSH_KEY_PASSPHRASE) {
+      connectOpts.passphrase = process.env.SSH_KEY_PASSPHRASE;
+    }
+  }
+  conn.connect(connectOpts);
 }
