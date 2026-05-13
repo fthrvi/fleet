@@ -12,12 +12,26 @@ const KEY_PATH = path.join(homedir(), ".ssh", "id_ed25519");
 
 async function connect(target: SshTarget): Promise<NodeSSH> {
   const ssh = new NodeSSH();
-  await ssh.connect({
-    host: target.host,
-    username: target.user,
-    privateKeyPath: target.privateKeyPath ?? KEY_PATH,
-    readyTimeout: 8000,
-  });
+  // Prefer the user's ssh-agent if SSH_AUTH_SOCK is present — this handles
+  // passphrase-protected keys (the agent already holds the unlocked key).
+  // Fall back to reading the key from disk only when no agent is available.
+  const agentSock = process.env.SSH_AUTH_SOCK;
+  if (agentSock) {
+    await ssh.connect({
+      host: target.host,
+      username: target.user,
+      agent: agentSock,
+      readyTimeout: 8000,
+    });
+  } else {
+    await ssh.connect({
+      host: target.host,
+      username: target.user,
+      privateKeyPath: target.privateKeyPath ?? KEY_PATH,
+      passphrase: process.env.SSH_KEY_PASSPHRASE,
+      readyTimeout: 8000,
+    });
+  }
   return ssh;
 }
 
