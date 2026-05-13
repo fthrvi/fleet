@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatRelative } from "@/lib/utils";
 import { WorkflowCreateForm } from "./workflow-create-form";
+import { EmptyState, EmptyIcons } from "@/components/EmptyState";
 
 export const dynamic = "force-dynamic";
 
@@ -38,11 +39,11 @@ export default async function WorkflowsPage() {
       </Card>
 
       {workflows.length === 0 ? (
-        <Card>
-          <CardContent className="py-8 text-center text-sm text-muted-foreground">
-            No workflows yet.
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={EmptyIcons.Workflow}
+          title="No workflows yet"
+          description="A workflow is a sequential chain of templates. Failed steps stop the chain unless they're marked 'always'. Each step still dispatches a regular job, so you get all the live log streaming for free."
+        />
       ) : (
         <div className="space-y-3">
           {workflows.map((w) => {

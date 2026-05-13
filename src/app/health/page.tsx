@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatRelative } from "@/lib/utils";
 import { HealthForm } from "./health-form";
 import { HealthActions } from "./health-actions";
+import { EmptyState, EmptyIcons } from "@/components/EmptyState";
 
 export const dynamic = "force-dynamic";
 
@@ -28,11 +29,11 @@ export default async function HealthPage() {
       </Card>
 
       {checks.length === 0 ? (
-        <Card>
-          <CardContent className="py-8 text-center text-sm text-muted-foreground">
-            No checks yet. Add an HTTP URL or host:port above to begin monitoring.
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={EmptyIcons.Health}
+          title="No health checks yet"
+          description="HTTP GET or TCP connect probes. Down/recovery transitions fire notifications through every enabled channel."
+        />
       ) : (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           {checks.map((c) => (

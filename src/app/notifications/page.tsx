@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { NotificationForm } from "./notification-form";
 import { NotificationActions } from "./notification-actions";
+import { EmptyState, EmptyIcons } from "@/components/EmptyState";
 
 export const dynamic = "force-dynamic";
 
@@ -29,12 +30,11 @@ export default async function NotificationsPage() {
       </Card>
 
       {channels.length === 0 ? (
-        <Card>
-          <CardContent className="py-8 text-center text-sm text-muted-foreground">
-            No channels yet. Discord webhooks are the easiest to set up — open your Discord server
-            settings → Integrations → Webhooks → New Webhook, copy the URL, paste here.
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={EmptyIcons.Bell}
+          title="No notification channels yet"
+          description="Discord webhooks are the easiest: Discord server settings → Integrations → Webhooks → New Webhook, copy the URL, paste here."
+        />
       ) : (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           {channels.map((c) => (

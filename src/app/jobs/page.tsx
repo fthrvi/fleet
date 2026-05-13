@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatRelative } from "@/lib/utils";
+import { EmptyState, EmptyIcons } from "@/components/EmptyState";
 
 export const dynamic = "force-dynamic";
 
@@ -16,11 +17,11 @@ export default async function JobsPage() {
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold">Jobs</h1>
       {jobs.length === 0 && (
-        <Card>
-          <CardContent className="py-8 text-center text-sm text-muted-foreground">
-            No jobs yet. Dispatch from a template to see them here.
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={EmptyIcons.Jobs}
+          title="No jobs yet"
+          description="Dispatch a job from /run, run a template, or fire a workflow. Each job's per-machine output streams here in real time."
+        />
       )}
       {jobs.map((j) => (
         <Card key={j.id}>

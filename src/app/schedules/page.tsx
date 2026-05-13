@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatRelative } from "@/lib/utils";
 import { ScheduleForm } from "./schedule-form";
 import { ScheduleActions } from "./schedule-actions";
+import { EmptyState, EmptyIcons } from "@/components/EmptyState";
 
 export const dynamic = "force-dynamic";
 
@@ -39,11 +40,11 @@ export default async function SchedulesPage() {
       </Card>
 
       {schedules.length === 0 ? (
-        <Card>
-          <CardContent className="py-8 text-center text-sm text-muted-foreground">
-            No schedules yet. Create one above.
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={EmptyIcons.Schedule}
+          title="No schedules yet"
+          description="Standard 5-field cron. Schedules can fire a single template OR an entire workflow. The background tick polls every 60s."
+        />
       ) : (
         <div className="space-y-3">
           {schedules.map((s) => {
