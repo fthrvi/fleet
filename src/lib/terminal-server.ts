@@ -129,22 +129,18 @@ async function handleConnection(ws: WebSocket, url: string) {
   ws.on("close", () => cleanup());
   ws.on("error", () => cleanup());
 
-  // Prefer the user's ssh-agent if available (handles passphrase-protected
-  // keys). Fall back to disk key only when no agent is set.
-  const agentSock = process.env.SSH_AUTH_SOCK;
+  // Authenticate with the dedicated passphraseless fleet key directly. We do not
+  // prefer the ssh-agent: an empty launchd agent would shadow this key and break
+  // the connection (see ssh.ts).
   const connectOpts: Parameters<typeof conn.connect>[0] = {
     host: machine.tailscaleHost,
     username: machine.sshUser,
     readyTimeout: 8000,
   };
-  if (agentSock) {
-    connectOpts.agent = agentSock;
-  } else {
-    const keyPath = path.join(homedir(), ".ssh", "id_ed25519");
-    connectOpts.privateKey = fs.readFileSync(keyPath);
-    if (process.env.SSH_KEY_PASSPHRASE) {
-      connectOpts.passphrase = process.env.SSH_KEY_PASSPHRASE;
-    }
+  const keyPath = path.join(homedir(), ".ssh", "id_cluster");
+  connectOpts.privateKey = fs.readFileSync(keyPath);
+  if (process.env.SSH_KEY_PASSPHRASE) {
+    connectOpts.passphrase = process.env.SSH_KEY_PASSPHRASE;
   }
   conn.connect(connectOpts);
 }

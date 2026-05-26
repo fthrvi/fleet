@@ -16,7 +16,7 @@ let cachedHubPubKey: string | null = null;
 
 export async function hubPublicKey(): Promise<string> {
   if (cachedHubPubKey) return cachedHubPubKey;
-  const p = path.join(homedir(), ".ssh", "id_ed25519.pub");
+  const p = path.join(homedir(), ".ssh", "id_cluster.pub");
   const content = (await fs.readFile(p, "utf8")).trim();
   cachedHubPubKey = content;
   return content;
