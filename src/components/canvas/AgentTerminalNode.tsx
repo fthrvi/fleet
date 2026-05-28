@@ -11,7 +11,8 @@ export function AgentTerminalNode({ data, selected }: NodeProps) {
   const [status, setStatus] = useState<TerminalStatus>("connecting");
   const [error, setError] = useState<string | null>(null);
   // Run in the chosen project dir if provided (no terminal-server change needed).
-  const launch = d.cwd ? `cd ${JSON.stringify(d.cwd)} && ${d.command}` : d.command;
+  // Expand a leading ~ to $HOME, which (unlike ~) does expand inside double quotes.
+  const launch = d.cwd ? `cd ${JSON.stringify(d.cwd.replace(/^~(?=$|\/)/, "$HOME"))} && ${d.command}` : d.command;
   const statusColor = status === "ready" ? "#34d399" : status === "error" ? "#f87171" : "#9ca3af";
 
   if (d?.machineId == null || !d?.hubHost) {

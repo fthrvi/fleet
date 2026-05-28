@@ -22,15 +22,26 @@ export function CanvasBoard({ machines, initialGraphJson }: { machines: Machine[
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>(initial.nodes);
   const [edges, , onEdgesChange] = useEdgesState<Edge>(initial.edges);
 
-  // Debounced autosave; skip the initial mount.
+  // Debounced autosave; skip the initial mount. `latest` holds the newest
+  // serialized graph so we can flush it on unmount / tab close without a
+  // sub-debounce change being lost.
+  const latest = useRef(initialGraphJson);
   const firstRun = useRef(true);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
+    latest.current = serializeGraph(nodes, edges);
     if (firstRun.current) { firstRun.current = false; return; }
     if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => { void saveCanvas(serializeGraph(nodes, edges)); }, 600);
+    timer.current = setTimeout(() => { void saveCanvas(latest.current); }, 600);
     return () => { if (timer.current) clearTimeout(timer.current); };
   }, [nodes, edges]);
+
+  // Flush the latest graph on unmount (SPA navigation) and best-effort on tab close.
+  useEffect(() => {
+    const flush = () => { void saveCanvas(latest.current); };
+    window.addEventListener("beforeunload", flush);
+    return () => { window.removeEventListener("beforeunload", flush); flush(); };
+  }, []);
 
   const addNode = useCallback((node: Node) => setNodes((ns) => [...ns, node]), [setNodes]);
 
