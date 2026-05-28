@@ -43,6 +43,13 @@ model Machine {
   jobAssignments    JobAssignment[]
 }
 
+// Yantra canvas workspace persistence (singleton for now).
+model Canvas {
+  id        Int      @id @default(1)
+  graphJson String   @default("{\"nodes\":[],\"edges\":[]}")
+  updatedAt DateTime @updatedAt
+}
+
 model JobTemplate {
   id           Int      @id @default(autoincrement())
   name         String   @unique
