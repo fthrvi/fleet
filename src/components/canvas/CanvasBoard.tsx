@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ReactFlow, Background, Controls,
   useNodesState, useEdgesState, type Node, type Edge,
@@ -9,8 +9,11 @@ import "@xyflow/react/dist/style.css";
 import { AgentTerminalNode } from "./AgentTerminalNode";
 import { ProjectNode } from "./ProjectNode";
 import { CanvasToolbar } from "./CanvasToolbar";
+import { FocusContext } from "./focus-context";
+import { FocusOverlay } from "./FocusOverlay";
 import { deserializeGraph, serializeGraph } from "@/lib/canvas-graph";
 import { saveCanvas } from "@/actions/canvas";
+import { buildLaunchCommand } from "@/lib/shell-cd";
 
 type Machine = { id: number; name: string };
 
@@ -21,6 +24,15 @@ export function CanvasBoard({ machines, initialGraphJson }: { machines: Machine[
 
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>(initial.nodes);
   const [edges, , onEdgesChange] = useEdgesState<Edge>(initial.edges);
+
+  const [focusedId, setFocused] = useState<string | null>(null);
+  const focusedNode = nodes.find((n) => n.id === focusedId && n.type === "agentTerminal");
+  const focusedSession = focusedNode
+    ? (() => {
+        const fd = focusedNode.data as unknown as { machineId: number; hubHost: string; command: string; cwd?: string; label?: string };
+        return { sessionId: focusedNode.id, machineId: fd.machineId, hubHost: fd.hubHost, cmd: buildLaunchCommand(fd.command, fd.cwd), label: fd.label || fd.command };
+      })()
+    : null;
 
   // Debounced autosave; skip the initial mount. `latest` holds the newest
   // serialized graph so we can flush it on unmount / tab close without a
@@ -46,20 +58,23 @@ export function CanvasBoard({ machines, initialGraphJson }: { machines: Machine[
   const addNode = useCallback((node: Node) => setNodes((ns) => [...ns, node]), [setNodes]);
 
   return (
-    <div style={{ width: "100vw", height: "100vh", background: "#070a0f" }}>
-      <CanvasToolbar machines={machines} hubHost={hubHost} onAdd={addNode} />
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        nodeTypes={nodeTypes}
-        fitView
-        proOptions={{ hideAttribution: true }}
-      >
-        <Background />
-        <Controls />
-      </ReactFlow>
-    </div>
+    <FocusContext.Provider value={{ focusedId, setFocused }}>
+      <div style={{ width: "100vw", height: "100vh", background: "#070a0f" }}>
+        <CanvasToolbar machines={machines} hubHost={hubHost} onAdd={addNode} />
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          nodeTypes={nodeTypes}
+          fitView
+          proOptions={{ hideAttribution: true }}
+        >
+          <Background />
+          <Controls />
+        </ReactFlow>
+        {focusedSession && <FocusOverlay session={focusedSession} />}
+      </div>
+    </FocusContext.Provider>
   );
 }
