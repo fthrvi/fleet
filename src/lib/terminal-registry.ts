@@ -37,7 +37,8 @@ export function adopt(id: string, container: HTMLElement): void {
   const e = sessions.get(id);
   if (!e) return;
   container.appendChild(e.conn.host); // moves out of its previous parent
-  requestAnimationFrame(() => e.conn.fit());
+  // Guard: skip a stale rAF fit if a later adopt() moved the host elsewhere.
+  requestAnimationFrame(() => { if (e.conn.host.parentElement === container) e.conn.fit(); });
 }
 
 export function release(id: string): void {
