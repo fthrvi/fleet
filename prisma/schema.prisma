@@ -30,6 +30,13 @@ model Machine {
   defaultThreads    Int?
   tags              String?  // comma-separated free-form
   notes             String?
+  // Yantra fleet roles (configurable from /fleet-topology)
+  hubEligible       Boolean  @default(false) // may hold the DB primary / be promoted to hub
+  modelServer       Boolean  @default(false) // serves LLM inference
+  worker            Boolean  @default(true)  // runs agents/jobs
+  isActiveHub       Boolean  @default(false) // exactly one Machine is true
+  // JSON-serialized [{label,baseUrl,model}] of LLM endpoints this machine serves
+  modelEndpoints    String?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
