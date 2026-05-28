@@ -3,6 +3,7 @@
 import { Handle, Position, NodeResizer, type NodeProps } from "@xyflow/react";
 import { TerminalView, type TerminalStatus } from "../TerminalView";
 import { useState } from "react";
+import { buildLaunchCommand } from "@/lib/shell-cd";
 
 type AgentData = { machineId: number; hubHost: string; command: string; cwd?: string; label?: string };
 
@@ -10,9 +11,9 @@ export function AgentTerminalNode({ data, selected }: NodeProps) {
   const d = data as unknown as AgentData;
   const [status, setStatus] = useState<TerminalStatus>("connecting");
   const [error, setError] = useState<string | null>(null);
-  // Run in the chosen project dir if provided (no terminal-server change needed).
-  // Expand a leading ~ to $HOME, which (unlike ~) does expand inside double quotes.
-  const launch = d.cwd ? `cd ${JSON.stringify(d.cwd.replace(/^~(?=$|\/)/, "$HOME"))} && ${d.command}` : d.command;
+  // Compose a safe "cd <dir> && <command>" launch — cwd is single-quote-escaped
+  // (shell metacharacters neutralized), ~ home preserved. See src/lib/shell-cd.ts.
+  const launch = buildLaunchCommand(d.command, d.cwd);
   const statusColor = status === "ready" ? "#34d399" : status === "error" ? "#f87171" : "#9ca3af";
 
   if (d?.machineId == null || !d?.hubHost) {
