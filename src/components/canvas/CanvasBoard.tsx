@@ -1,37 +1,42 @@
 "use client";
 
-import { useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import {
-  ReactFlow,
-  Background,
-  Controls,
-  useNodesState,
-  useEdgesState,
-  type Node,
+  ReactFlow, Background, Controls,
+  useNodesState, useEdgesState, type Node, type Edge,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { AgentTerminalNode } from "./AgentTerminalNode";
+import { ProjectNode } from "./ProjectNode";
+import { CanvasToolbar } from "./CanvasToolbar";
+import { deserializeGraph, serializeGraph } from "@/lib/canvas-graph";
+import { saveCanvas } from "@/actions/canvas";
 
 type Machine = { id: number; name: string };
 
-export function CanvasBoard({ machines }: { machines: Machine[] }) {
+export function CanvasBoard({ machines, initialGraphJson }: { machines: Machine[]; initialGraphJson: string }) {
   const hubHost = typeof window !== "undefined" ? window.location.hostname : "localhost";
-  const nodeTypes = useMemo(() => ({ agentTerminal: AgentTerminalNode }), []);
+  const initial = useMemo(() => deserializeGraph(initialGraphJson), [initialGraphJson]);
+  const nodeTypes = useMemo(() => ({ agentTerminal: AgentTerminalNode, project: ProjectNode }), []);
 
-  const initialNodes: Node[] = [
-    {
-      id: "agent-1",
-      type: "agentTerminal",
-      position: { x: 80, y: 80 },
-      data: { machines, hubHost },
-    },
-  ];
+  const [nodes, setNodes, onNodesChange] = useNodesState<Node>(initial.nodes);
+  const [edges, , onEdgesChange] = useEdgesState<Edge>(initial.edges);
 
-  const [nodes, , onNodesChange] = useNodesState(initialNodes);
-  const [edges, , onEdgesChange] = useEdgesState([]);
+  // Debounced autosave; skip the initial mount.
+  const firstRun = useRef(true);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (firstRun.current) { firstRun.current = false; return; }
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => { void saveCanvas(serializeGraph(nodes, edges)); }, 600);
+    return () => { if (timer.current) clearTimeout(timer.current); };
+  }, [nodes, edges]);
+
+  const addNode = useCallback((node: Node) => setNodes((ns) => [...ns, node]), [setNodes]);
 
   return (
     <div style={{ width: "100vw", height: "100vh", background: "#070a0f" }}>
+      <CanvasToolbar machines={machines} hubHost={hubHost} onAdd={addNode} />
       <ReactFlow
         nodes={nodes}
         edges={edges}
