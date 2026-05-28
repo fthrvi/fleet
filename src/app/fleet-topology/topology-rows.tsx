@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { setMachineRoles, setModelEndpoints, setActiveHub } from "@/actions/device-roles";
 
 type Machine = {
@@ -10,26 +10,25 @@ type Machine = {
 };
 
 export function TopologyRows({ machines }: { machines: Machine[] }) {
-  const [pending, startTransition] = useTransition();
   return (
     <div className="flex flex-col gap-2">
       <div className="grid grid-cols-[1fr_repeat(3,80px)_1fr_120px] gap-2 text-xs text-muted-foreground">
         <span>Machine</span><span>hub-elig</span><span>model-srv</span><span>worker</span><span>model endpoints (JSON)</span><span>active hub</span>
       </div>
       {machines.map((m) => (
-        <Row key={m.id} m={m} pending={pending} startTransition={startTransition} />
+        <Row key={m.id} m={m} />
       ))}
     </div>
   );
 }
 
-function Row({
-  m, pending, startTransition,
-}: {
-  m: Machine; pending: boolean; startTransition: (cb: () => void) => void;
-}) {
+function Row({ m }: { m: Machine }) {
+  const [pending, startTransition] = useTransition();
   const [endpoints, setEndpoints] = useState(m.modelEndpoints ?? "");
   const [error, setError] = useState<string | null>(null);
+
+  // Reset the editable field when the server sends fresh data (e.g. after save + revalidate).
+  useEffect(() => { setEndpoints(m.modelEndpoints ?? ""); }, [m.modelEndpoints]);
 
   const toggle = (key: "hubEligible" | "modelServer" | "worker") => {
     const next = { hubEligible: m.hubEligible, modelServer: m.modelServer, worker: m.worker, [key]: !m[key] };
