@@ -90,6 +90,7 @@ async function handleConnection(ws: WebSocket, url: string) {
       if (cmd) {
         // Let the interactive rc finish loading, then type the command into the PTY.
         setTimeout(() => {
+          if (closed) return;
           try {
             stream.write(cmd + "\n");
           } catch {
