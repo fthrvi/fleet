@@ -58,6 +58,18 @@ export function TerminalView({ machineId, hubHost, cmd, onStatusChange }: Props)
             const msg = JSON.parse(e.data);
             if (msg.type === "ready") {
               statusRef.current?.("ready");
+              // The server only registers its resize handler once the PTY shell
+              // is ready, so the initial onopen resize is dropped and the PTY
+              // keeps its default 100 cols (garbles width-aware TUIs like Claude
+              // Code). Re-fit and re-send the real size now that the shell exists.
+              try {
+                fit.fit();
+                if (ws.readyState === WebSocket.OPEN) {
+                  ws.send(JSON.stringify({ type: "resize", cols: term.cols, rows: term.rows }));
+                }
+              } catch {
+                /* ignore */
+              }
               return;
             }
             if (msg.type === "error") {

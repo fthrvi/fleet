@@ -33,8 +33,8 @@ export function AgentTerminalNode({ data }: NodeProps) {
   return (
     <div
       style={{
-        width: 520,
-        height: 380,
+        width: 760,
+        height: 520,
         background: "#0b0e14",
         border: "1px solid #1f2937",
         borderRadius: 8,
