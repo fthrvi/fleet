@@ -14,6 +14,14 @@ export function AgentTerminalNode({ data, selected }: NodeProps) {
   const launch = d.cwd ? `cd ${JSON.stringify(d.cwd)} && ${d.command}` : d.command;
   const statusColor = status === "ready" ? "#34d399" : status === "error" ? "#f87171" : "#9ca3af";
 
+  if (d?.machineId == null || !d?.hubHost) {
+    return (
+      <div style={{ width: "100%", height: "100%", minWidth: 360, minHeight: 240, background: "#0b0e14", border: "1px solid #3f1d1d", borderRadius: 8, color: "#fca5a5", fontSize: 12, padding: 12 }}>
+        Session not configured (missing machine/host).
+      </div>
+    );
+  }
+
   return (
     <div style={{ width: "100%", height: "100%", minWidth: 360, minHeight: 240, background: "#0b0e14", border: "1px solid #1f2937", borderRadius: 8, display: "flex", flexDirection: "column", overflow: "hidden" }}>
       <NodeResizer minWidth={360} minHeight={240} isVisible={!!selected} />
@@ -30,6 +38,7 @@ export function AgentTerminalNode({ data, selected }: NodeProps) {
           <div style={{ position: "absolute", inset: 4, background: "rgba(11,14,20,.92)", color: "#fca5a5", fontSize: 12, padding: 12, overflow: "auto" }}>
             <strong>Connection failed</strong>
             <div style={{ marginTop: 6, fontFamily: "ui-monospace, monospace" }}>{error}</div>
+            <div style={{ marginTop: 8, color: "#9ca3af" }}>Reload the page to retry.</div>
           </div>
         )}
       </div>
