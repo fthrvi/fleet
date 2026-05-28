@@ -1,48 +1,47 @@
 "use client";
 
+import { useEffect } from "react";
 import { Handle, Position, NodeResizer, type NodeProps } from "@xyflow/react";
-import { TerminalView, type TerminalStatus } from "../TerminalView";
-import { useState } from "react";
+import { TerminalSlot } from "./TerminalSlot";
+import { useFocus } from "./focus-context";
+import { dispose } from "@/lib/terminal-registry";
 import { buildLaunchCommand } from "@/lib/shell-cd";
 
 type AgentData = { machineId: number; hubHost: string; command: string; cwd?: string; label?: string };
 
-export function AgentTerminalNode({ data, selected }: NodeProps) {
+function box(border: string): React.CSSProperties {
+  return { width: "100%", height: "100%", minWidth: 360, minHeight: 240, background: "#0b0e14", border: `1px solid ${border}`, borderRadius: 8, display: "flex", flexDirection: "column", overflow: "hidden" };
+}
+
+export function AgentTerminalNode({ id, data, selected }: NodeProps) {
   const d = data as unknown as AgentData;
-  const [status, setStatus] = useState<TerminalStatus>("connecting");
-  const [error, setError] = useState<string | null>(null);
-  // Compose a safe "cd <dir> && <command>" launch — cwd is single-quote-escaped
-  // (shell metacharacters neutralized), ~ home preserved. See src/lib/shell-cd.ts.
-  const launch = buildLaunchCommand(d.command, d.cwd);
-  const statusColor = status === "ready" ? "#34d399" : status === "error" ? "#f87171" : "#9ca3af";
+  const { focusedId, setFocused } = useFocus();
+  const isFocused = focusedId === id;
+
+  // Dispose the session when the node is removed from the canvas.
+  useEffect(() => () => { dispose(id); }, [id]);
 
   if (d?.machineId == null || !d?.hubHost) {
     return (
-      <div style={{ width: "100%", height: "100%", minWidth: 360, minHeight: 240, background: "#0b0e14", border: "1px solid #3f1d1d", borderRadius: 8, color: "#fca5a5", fontSize: 12, padding: 12 }}>
-        Session not configured (missing machine/host).
+      <div style={box("#3f1d1d")}>
+        <div style={{ color: "#fca5a5", fontSize: 12, padding: 12 }}>Session not configured (missing machine/host).</div>
       </div>
     );
   }
+  const launch = buildLaunchCommand(d.command, d.cwd);
 
   return (
-    <div style={{ width: "100%", height: "100%", minWidth: 360, minHeight: 240, background: "#0b0e14", border: "1px solid #1f2937", borderRadius: 8, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+    <div style={box("#1f2937")} onDoubleClick={() => setFocused(id)} title="Double-click to focus">
       <NodeResizer minWidth={360} minHeight={240} isVisible={!!selected} />
       <Handle type="target" position={Position.Top} />
       <div className="nodrag" style={{ display: "flex", gap: 8, alignItems: "center", padding: "6px 8px", borderBottom: "1px solid #1f2937", color: "#c8d3f5", fontSize: 12 }}>
         <span>🤖 {d.label || d.command}</span>
-        <span style={{ marginLeft: "auto", fontSize: 11, color: statusColor }}>
-          {status === "ready" ? "● connected" : status === "connecting" ? "connecting…" : status === "closed" ? "○ closed" : "● error"}
-        </span>
+        <span style={{ marginLeft: "auto", fontSize: 11, color: "#6b7280" }}>dbl-click ⤢</span>
       </div>
-      <div className="nodrag nowheel" style={{ flex: 1, minHeight: 0, padding: 4, position: "relative" }}>
-        <TerminalView machineId={d.machineId} hubHost={d.hubHost} cmd={launch} onStatusChange={(s, e) => { setStatus(s); setError(e ?? null); }} />
-        {error && (
-          <div style={{ position: "absolute", inset: 4, background: "rgba(11,14,20,.92)", color: "#fca5a5", fontSize: 12, padding: 12, overflow: "auto" }}>
-            <strong>Connection failed</strong>
-            <div style={{ marginTop: 6, fontFamily: "ui-monospace, monospace" }}>{error}</div>
-            <div style={{ marginTop: 8, color: "#9ca3af" }}>Reload the page to retry.</div>
-          </div>
-        )}
+      <div style={{ flex: 1, minHeight: 0 }}>
+        {isFocused
+          ? <div style={{ color: "#6b7280", fontSize: 12, padding: 12 }}>focused ↗ (running full-screen)</div>
+          : <TerminalSlot sessionId={id} machineId={d.machineId} hubHost={d.hubHost} cmd={launch} />}
       </div>
       <Handle type="source" position={Position.Bottom} />
     </div>
