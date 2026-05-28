@@ -17,6 +17,7 @@ import { homedir } from "node:os";
 import path from "node:path";
 import fs from "node:fs";
 import { db } from "./db";
+import { parseAgentTerminalQuery } from "./terminal-params";
 
 type GlobalWithTerminal = typeof globalThis & {
   __labFleetTerminal?: { wss: WebSocketServer };
@@ -52,9 +53,8 @@ export function startTerminalServer() {
 }
 
 async function handleConnection(ws: WebSocket, url: string) {
-  const params = new URL(url, "http://localhost").searchParams;
-  const machineId = Number(params.get("machineId"));
-  if (!Number.isFinite(machineId)) {
+  const { machineId, cmd } = parseAgentTerminalQuery(url);
+  if (machineId === null) {
     ws.send(JSON.stringify({ type: "error", message: "missing machineId" }));
     ws.close();
     return;
@@ -87,6 +87,16 @@ async function handleConnection(ws: WebSocket, url: string) {
       }
       shellStream = stream;
       ws.send(JSON.stringify({ type: "ready", machine: machine.name }));
+      if (cmd) {
+        // Let the interactive rc finish loading, then type the command into the PTY.
+        setTimeout(() => {
+          try {
+            stream.write(cmd + "\n");
+          } catch {
+            /* stream may have closed */
+          }
+        }, 400);
+      }
 
       stream.on("data", (data: Buffer) => {
         if (ws.readyState === WebSocket.OPEN) {
