@@ -49,6 +49,9 @@ async function tick(state: { tickInFlight: boolean }) {
     // Piggy-back health checks on every tick
     const { runDueHealthChecks } = await import("./health");
     await runDueHealthChecks();
+    // Reap zombie JobAssignments (stuck RUNNING from a prior hub crash)
+    const { reapZombieAssignments } = await import("./zombie-reaper");
+    await reapZombieAssignments();
     // And a daily backup probe
     const { maybeDailyBackup } = await import("./backup");
     await maybeDailyBackup();

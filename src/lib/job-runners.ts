@@ -7,6 +7,7 @@
 import { runCommandStream } from "./ssh";
 import { runLocalCommandStream } from "./local-exec";
 import { hubPublicKey } from "./setup-script";
+import { buildShellCommand, buildTranscribeCommand } from "./job-previews";
 import type { Machine } from "@prisma/client";
 import { homedir } from "node:os";
 import path from "node:path";
@@ -33,10 +34,10 @@ function homeExpand(p: string, sshUser: string) {
 
 // shell — run an arbitrary command on the machine
 export async function runShell(ctx: RunnerContext, hooks: RunnerHooks): Promise<RunnerResult> {
-  const command = String(ctx.recipe.command ?? "");
-  if (!command) return { code: null, error: "no command in recipe" };
-  hooks.onSystem(`$ ${command}`);
-  return runCommandStream(target(ctx.machine), command, {
+  const preview = buildShellCommand(ctx.machine, ctx.recipe);
+  if (!preview.valid) return { code: null, error: preview.error };
+  hooks.onSystem(`$ ${preview.command}`);
+  return runCommandStream(preview.target, preview.command, {
     onStdout: hooks.onStdout,
     onStderr: hooks.onStderr,
   });
@@ -90,48 +91,29 @@ export async function runRsyncToHub(
   );
 }
 
-// transcribe-mp4s-worker — deploy worker.sh and start it on the machine
+// transcribe-mp4s-worker — deploy worker.sh and start it on the machine.
+// Command-building lives in `buildTranscribeCommand` (job-previews.ts) so the
+// copilot dry-render UI shows the exact same strings that get executed here.
 export async function runTranscribeWorker(
   ctx: RunnerContext,
   hooks: RunnerHooks,
 ): Promise<RunnerResult> {
-  const workerScriptPath = String(ctx.recipe.workerScriptPath ?? "");
-  const hubHost = String(ctx.recipe.hubHost ?? "");
-  const hubUser = String(ctx.recipe.hubUser ?? "");
-  const hubPath = String(ctx.recipe.hubPath ?? "mentoring-transcripts");
-  const prefix = String(ctx.recipe.prefix ?? "");
-  const threads = Number(ctx.recipe.threads ?? 8);
-
-  if (!workerScriptPath || !hubHost || !hubUser) {
-    return { code: null, error: "workerScriptPath, hubHost, hubUser required" };
+  const preview = buildTranscribeCommand(ctx.machine, ctx.recipe);
+  if (!preview.valid) {
+    return { code: null, error: preview.error };
   }
 
-  const remoteWorker = `${ctx.machine.sshUser}@${ctx.machine.tailscaleHost}:~/worker.sh`;
-  hooks.onSystem(`$ scp ${workerScriptPath} → ${remoteWorker}`);
-
-  const scp = await runLocalCommandStream(
-    "scp",
-    ["-q", workerScriptPath, remoteWorker],
-    { onStdout: hooks.onStdout, onStderr: hooks.onStderr },
-  );
+  hooks.onSystem(`$ ${preview.steps.scp.label}`);
+  const scp = await runLocalCommandStream("scp", preview.steps.scp.args, {
+    onStdout: hooks.onStdout,
+    onStderr: hooks.onStderr,
+  });
   if (scp.code !== 0) {
     return { code: scp.code, error: scp.error ?? "scp failed" };
   }
 
-  hooks.onSystem(`$ Starting worker on ${ctx.machine.name} (prefix=${prefix || "<any>"}, threads=${threads})`);
-  const remoteCmd = [
-    `chmod +x ~/worker.sh`,
-    // Pre-trust the hub's host key so the worker can SSH back without prompts
-    `ssh-keyscan -t ed25519 ${hubHost} 2>/dev/null >> ~/.ssh/known_hosts || true`,
-    // Kill any prior worker; start fresh
-    `pkill -f worker.sh 2>/dev/null; sleep 1; true`,
-    // Launch via nohup with explicit PATH (Homebrew-installed binaries on Intel + Apple Silicon)
-    `PATH=/usr/local/bin:/opt/homebrew/bin:$PATH HUB=${hubHost} HUB_USER=${hubUser} HUB_PATH='${hubPath}' WORKER_NAME=${ctx.machine.name} PREFIX='${prefix}' THREADS=${threads} nohup ~/worker.sh > ~/worker.out 2>&1 &`,
-    // Give it 3s, then dump the first few log lines
-    `sleep 3; tail -n 5 ~/mentoring-transcripts-worker/logs/worker.log 2>/dev/null || echo 'no log yet'`,
-  ].join(" && ");
-
-  return runCommandStream(target(ctx.machine), remoteCmd, {
+  hooks.onSystem(`$ ${preview.steps.ssh.label}`);
+  return runCommandStream(preview.steps.ssh.target, preview.steps.ssh.command, {
     onStdout: hooks.onStdout,
     onStderr: hooks.onStderr,
   });

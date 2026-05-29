@@ -1,0 +1,27 @@
+# GBNF grammar for the copilot proposal schema.
+# Use this when json_schema response_format isn't honored by the inference
+# host (older llama-server builds). Pass to llama-server's /completion endpoint
+# via the `grammar` field. The kind enum here mirrors ALLOWED_KINDS in prompt.ts.
+
+root        ::= proposal
+proposal    ::= "{" ws "\"kind\"" ws ":" ws kind ws "," ws "\"recipe\"" ws ":" ws object ws "," ws "\"targetMachineIds\"" ws ":" ws intArray ws "," ws "\"rationale\"" ws ":" ws string ws "}"
+
+kind        ::= "\"shell\"" | "\"rsync-from-hub\"" | "\"rsync-to-hub\"" | "\"git-deploy\"" | "\"transcribe-mp4s-worker\"" | "\"needs-clarification\""
+
+value       ::= object | array | string | number | "true" | "false" | "null"
+object      ::= "{" ws ( pair ( ws "," ws pair )* )? ws "}"
+pair        ::= string ws ":" ws value
+array       ::= "[" ws ( value ( ws "," ws value )* )? ws "]"
+intArray    ::= "[" ws ( integer ( ws "," ws integer )* )? ws "]"
+
+string      ::= "\"" stringChar* "\""
+stringChar  ::= [^"\\] | "\\" [\"\\/bfnrt] | "\\u" hex hex hex hex
+hex         ::= [0-9a-fA-F]
+
+number      ::= "-"? integerPart fractionalPart? exponentPart?
+integer     ::= "-"? integerPart
+integerPart ::= "0" | [1-9] [0-9]*
+fractionalPart ::= "." [0-9]+
+exponentPart ::= [eE] [+-]? [0-9]+
+
+ws          ::= [ \t\n\r]*

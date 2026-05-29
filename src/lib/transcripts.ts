@@ -1,6 +1,11 @@
-// Read-only helpers for the existing ~/mentoring-transcripts coordinator.
+// Read-only helpers for a transcription coordinator dir.
 // Lets the dashboard surface live queue progress without reimplementing
 // claim_next.sh / queue_status.sh.
+//
+// Layouts auto-detected from ROOT:
+//   - MP4 (webinar): {root}/videos/*.mp4 -> {root}/transcripts/{base}.txt
+//   - MP3 (PS course): {root}/sources/*.mp3 -> {root}/transcripts/{base}.mp3.txt
+// Override via env: TRANSCRIPTS_SOURCE_DIR, TRANSCRIPTS_SOURCE_EXT, TRANSCRIPTS_OUTPUT_EXT.
 
 import { execFile as execFileCb } from "node:child_process";
 import { promisify } from "node:util";
@@ -21,6 +26,21 @@ export interface TranscriptsSnapshot {
   remaining: number;
 }
 
+async function detectLayout() {
+  const sourceDir = process.env.TRANSCRIPTS_SOURCE_DIR;
+  const sourceExt = process.env.TRANSCRIPTS_SOURCE_EXT;
+  const outputExt = process.env.TRANSCRIPTS_OUTPUT_EXT;
+  if (sourceDir && sourceExt && outputExt) {
+    return { sourceDir, sourceExt, outputExt };
+  }
+  try {
+    await fs.access(path.join(ROOT, "sources"));
+    return { sourceDir: "sources", sourceExt: ".mp3", outputExt: ".mp3.txt" };
+  } catch {
+    return { sourceDir: "videos", sourceExt: ".mp4", outputExt: ".txt" };
+  }
+}
+
 export async function transcriptsSnapshot(): Promise<TranscriptsSnapshot> {
   try {
     await fs.access(ROOT);
@@ -35,13 +55,14 @@ export async function transcriptsSnapshot(): Promise<TranscriptsSnapshot> {
     };
   }
 
-  const videosDir = path.join(ROOT, "videos");
+  const { sourceDir, sourceExt, outputExt } = await detectLayout();
+  const videosDir = path.join(ROOT, sourceDir);
   const transcriptsDir = path.join(ROOT, "transcripts");
   const claimsDir = path.join(ROOT, "claims");
 
   const [videos, txts, claims] = await Promise.all([
-    safeReaddir(videosDir, (f) => f.endsWith(".mp4")),
-    safeReaddir(transcriptsDir, (f) => f.endsWith(".txt")),
+    safeReaddir(videosDir, (f) => f.endsWith(sourceExt)),
+    safeReaddir(transcriptsDir, (f) => f.endsWith(outputExt)),
     safeReaddir(claimsDir, (f) => f.endsWith(".claim")),
   ]);
 

@@ -13,6 +13,7 @@ const navItems = [
   { href: "/", label: "Fleet" },
   { href: "/apps", label: "Apps" },
   { href: "/run", label: "Run" },
+  { href: "/copilot", label: "Copilot" },
   { href: "/deploy", label: "Deploy" },
   { href: "/jobs", label: "Jobs" },
   { href: "/templates", label: "Templates" },

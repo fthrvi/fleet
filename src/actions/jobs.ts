@@ -393,3 +393,162 @@ export async function getJobSnapshot(jobId: number) {
   });
   return job;
 }
+
+const dispatchProposalSchema = z.object({
+  kind: z.string().min(1),
+  recipe: z.record(z.unknown()),
+  machineIds: z.array(z.number().int()).min(1),
+  templateId: z.number().int().optional().nullable(),
+  triggeredBy: z.string().optional(),
+});
+
+// dispatchProposal — like dispatchTemplate, but takes a kind+recipe directly
+// (no JobTemplate row required). Used by the copilot's "Run on 1" / "Run on
+// rest" trial flow where the recipe is generated on the fly. Hub workflow
+// otherwise identical to dispatchTemplate: create Job + assignments, fire
+// runTemplateAssignment per machine.
+export async function dispatchProposal(input: z.infer<typeof dispatchProposalSchema>) {
+  const parsed = dispatchProposalSchema.parse(input);
+
+  const runner = RUNNERS[parsed.kind];
+  if (!runner) return { ok: false as const, error: `unknown kind ${parsed.kind}` };
+
+  const machines = await db.machine.findMany({ where: { id: { in: parsed.machineIds } } });
+  if (machines.length === 0) return { ok: false as const, error: "no machines" };
+  if (machines.some((m) => !m.sshUser)) {
+    return { ok: false as const, error: "one or more selected machines have no SSH user set" };
+  }
+
+  const job = await db.job.create({
+    data: {
+      kind: parsed.kind,
+      templateId: parsed.templateId ?? null,
+      status: "RUNNING",
+      startedAt: new Date(),
+      recipeJson: JSON.stringify(parsed.recipe),
+      triggeredBy: parsed.triggeredBy ?? "copilot",
+      assignments: {
+        create: machines.map((m) => ({
+          machineId: m.id,
+          status: "RUNNING",
+          startedAt: new Date(),
+        })),
+      },
+    },
+    include: { assignments: true },
+  });
+
+  await db.jobLog.create({
+    data: {
+      jobId: job.id,
+      stream: "system",
+      line: `Copilot dispatched kind=${parsed.kind} on ${machines.length} machine(s): ${machines.map((m) => m.name).join(", ")}`,
+    },
+  });
+  await logEvent({
+    category: "job",
+    kind: "dispatched",
+    message: `Copilot job #${job.id} dispatched on ${machines.map((m) => m.name).join(", ")}`,
+    jobId: job.id,
+  });
+
+  for (const assignment of job.assignments) {
+    const machine = machines.find((m) => m.id === assignment.machineId);
+    if (!machine) continue;
+    void runTemplateAssignment(job.id, assignment.id, machine, parsed.kind, parsed.recipe);
+  }
+
+  revalidatePath("/jobs");
+  revalidatePath(`/jobs/${job.id}`);
+  return { ok: true as const, jobId: job.id };
+}
+
+const redispatchSchema = z.object({
+  jobId: z.number().int(),
+  scope: z.enum(["failed", "all"]).default("failed"),
+});
+
+// Re-dispatch a previous job's recipe against the same machines.
+// scope="failed" (default) targets only the JobAssignments that ended FAILED;
+// scope="all" targets every assignment regardless of prior status (useful when
+// the user wants to re-run everything from scratch on the same fleet).
+// Reuses the source job's recipeJson verbatim — does NOT re-resolve template
+// defaults, so the rerun is deterministic even if the template was edited.
+export async function redispatchJob(input: z.infer<typeof redispatchSchema>) {
+  const parsed = redispatchSchema.parse(input);
+  const source = await db.job.findUnique({
+    where: { id: parsed.jobId },
+    include: { assignments: { include: { machine: true } } },
+  });
+  if (!source) return { ok: false as const, error: "source job not found" };
+
+  const targets =
+    parsed.scope === "failed"
+      ? source.assignments.filter((a) => a.status === "FAILED")
+      : source.assignments;
+  if (targets.length === 0) {
+    return {
+      ok: false as const,
+      error:
+        parsed.scope === "failed"
+          ? "no failed assignments to re-dispatch"
+          : "source job has no assignments",
+    };
+  }
+
+  const machines = targets.map((t) => t.machine);
+  if (machines.some((m) => !m.sshUser)) {
+    return { ok: false as const, error: "one or more target machines have no SSH user set" };
+  }
+
+  const runner = RUNNERS[source.kind];
+  if (!runner) return { ok: false as const, error: `unknown kind ${source.kind}` };
+
+  const recipe = JSON.parse(source.recipeJson) as Record<string, unknown>;
+
+  const newJob = await db.job.create({
+    data: {
+      kind: source.kind,
+      templateId: source.templateId,
+      status: "RUNNING",
+      startedAt: new Date(),
+      recipeJson: source.recipeJson,
+      triggeredBy: `redispatch:${source.id}`,
+      assignments: {
+        create: machines.map((m) => ({
+          machineId: m.id,
+          status: "RUNNING",
+          startedAt: new Date(),
+        })),
+      },
+    },
+    include: { assignments: true },
+  });
+
+  await db.jobLog.create({
+    data: {
+      jobId: newJob.id,
+      stream: "system",
+      line: `Re-dispatch of job #${source.id} (${parsed.scope}) on ${machines.length} machine(s): ${machines
+        .map((m) => m.name)
+        .join(", ")}`,
+    },
+  });
+  await logEvent({
+    category: "job",
+    kind: "dispatched",
+    message: `Re-dispatch of job #${source.id} → job #${newJob.id} (${parsed.scope})`,
+    jobId: newJob.id,
+  });
+
+  for (const assignment of newJob.assignments) {
+    const machine = machines.find((m) => m.id === assignment.machineId);
+    if (!machine) continue;
+    void runTemplateAssignment(newJob.id, assignment.id, machine, source.kind, recipe);
+  }
+
+  revalidatePath("/jobs");
+  revalidatePath(`/jobs/${source.id}`);
+  revalidatePath(`/jobs/${newJob.id}`);
+  return { ok: true as const, jobId: newJob.id };
+}

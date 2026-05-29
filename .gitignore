@@ -14,6 +14,7 @@ out/
 # Local SQLite + backups
 data/*.db
 data/*.db-journal
+data/*.bak-*
 data/backups/
 data/uploads/
 
@@ -28,3 +29,6 @@ logs/
 .vscode/
 .idea/
 *.swp
+
+# Build temp
+.tsc-tmp/

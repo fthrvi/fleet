@@ -37,6 +37,11 @@ model Machine {
   isActiveHub       Boolean  @default(false) // exactly one Machine is true
   // JSON-serialized [{label,baseUrl,model}] of LLM endpoints this machine serves
   modelEndpoints    String?
+  // JSON-serialized {gguf: string[], binaries: string[], gpus: string[]} from periodic probe.
+  // Read by the copilot fleet snapshot + machine card "capabilities" tooltip.
+  modelInventory    String?
+  // When the inventory probe last succeeded for this machine.
+  inventoryUpdatedAt DateTime?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
