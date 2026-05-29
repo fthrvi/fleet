@@ -59,7 +59,7 @@ export function CanvasBoard({ machines, initialGraphJson }: { machines: Machine[
 
   return (
     <FocusContext.Provider value={{ focusedId, setFocused }}>
-      <div style={{ width: "100vw", height: "100vh", background: "#070a0f" }}>
+      <div style={{ position: "fixed", inset: 0, zIndex: 50, background: "#070a0f" }}>
         <CanvasToolbar machines={machines} hubHost={hubHost} onAdd={addNode} />
         <ReactFlow
           nodes={nodes}

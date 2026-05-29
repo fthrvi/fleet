@@ -29,6 +29,7 @@ export function CanvasToolbar({ machines, hubHost, onAdd }: { machines: Machine[
 
   return (
     <div style={{ position: "absolute", zIndex: 10, top: 10, left: 10, display: "flex", gap: 8 }}>
+      <a href="/" style={{ ...btn, textDecoration: "none", display: "inline-flex", alignItems: "center" }}>← Fleet</a>
       <button onClick={() => setOpen((o) => !o)} style={btn}>+ New session</button>
       <button onClick={addProject} style={btn}>+ New project</button>
       {open && (
