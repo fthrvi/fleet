@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ReactFlow, Background, Controls,
-  useNodesState, useEdgesState, type Node, type Edge,
+  ReactFlow, Background, Controls, MiniMap, addEdge,
+  useNodesState, useEdgesState, type Node, type Edge, type Connection,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { AgentTerminalNode } from "./AgentTerminalNode";
@@ -23,7 +23,8 @@ export function CanvasBoard({ machines, initialGraphJson }: { machines: Machine[
   const nodeTypes = useMemo(() => ({ agentTerminal: AgentTerminalNode, project: ProjectNode }), []);
 
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>(initial.nodes);
-  const [edges, , onEdgesChange] = useEdgesState<Edge>(initial.edges);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>(initial.edges);
+  const onConnect = useCallback((c: Connection) => setEdges((es) => addEdge(c, es)), [setEdges]);
 
   const [focusedId, setFocused] = useState<string | null>(null);
   const focusedNode = nodes.find((n) => n.id === focusedId && n.type === "agentTerminal");
@@ -66,12 +67,14 @@ export function CanvasBoard({ machines, initialGraphJson }: { machines: Machine[
           edges={edges}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
           nodeTypes={nodeTypes}
           fitView
           proOptions={{ hideAttribution: true }}
         >
           <Background />
           <Controls />
+          <MiniMap pannable zoomable style={{ background: "#0b0e14" }} />
         </ReactFlow>
         {focusedSession && <FocusOverlay session={focusedSession} />}
       </div>

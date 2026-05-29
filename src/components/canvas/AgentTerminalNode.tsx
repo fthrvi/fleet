@@ -34,9 +34,10 @@ export function AgentTerminalNode({ id, data, selected }: NodeProps) {
     <div style={box("#1f2937")} onDoubleClick={() => setFocused(id)} title="Double-click to focus">
       <NodeResizer minWidth={360} minHeight={240} isVisible={!!selected} />
       <Handle type="target" position={Position.Top} />
-      <div className="nodrag" style={{ display: "flex", gap: 8, alignItems: "center", padding: "6px 8px", borderBottom: "1px solid #1f2937", color: "#c8d3f5", fontSize: 12 }}>
-        <span>🤖 {d.label || d.command}</span>
-        <span style={{ marginLeft: "auto", fontSize: 11, color: "#6b7280" }}>dbl-click ⤢</span>
+      {/* Header is the drag handle (NOT nodrag) so the node can be moved; the terminal body stays nodrag. */}
+      <div style={{ display: "flex", gap: 8, alignItems: "center", padding: "6px 8px", borderBottom: "1px solid #1f2937", color: "#c8d3f5", fontSize: 12, cursor: "grab" }}>
+        <span>⠿ 🤖 {d.label || d.command}</span>
+        <span style={{ marginLeft: "auto", fontSize: 11, color: "#6b7280" }}>drag · ⤢ dbl-click</span>
       </div>
       <div style={{ flex: 1, minHeight: 0 }}>
         {isFocused
