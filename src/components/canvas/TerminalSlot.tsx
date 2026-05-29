@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ensureSession, adopt, release, subscribeStatus } from "@/lib/terminal-registry";
+import { ensureSession, adopt, release, refit, subscribeStatus } from "@/lib/terminal-registry";
 import type { TerminalStatus } from "@/lib/terminal-connection";
 
 interface Props { sessionId: string; machineId: number; hubHost: string; cmd: string; }
@@ -15,8 +15,10 @@ export function TerminalSlot({ sessionId, machineId, hubHost, cmd }: Props) {
     ensureSession(sessionId, { machineId, hubHost, cmd });
     const el = ref.current;
     if (el) adopt(sessionId, el);
+    const ro = el ? new ResizeObserver(() => refit(sessionId)) : null;
+    if (el && ro) ro.observe(el);
     const unsub = subscribeStatus(sessionId, (s, e) => { setStatus(s); setError(e ?? null); });
-    return () => { unsub(); release(sessionId); }; // release (NOT dispose) — host parks, session lives
+    return () => { ro?.disconnect(); unsub(); release(sessionId); }; // release (NOT dispose) — host parks, session lives
   }, [sessionId, machineId, hubHost, cmd]);
 
   const color = status === "ready" ? "#34d399" : status === "error" ? "#f87171" : "#9ca3af";

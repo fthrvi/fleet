@@ -47,6 +47,10 @@ export function release(id: string): void {
   parkingEl().appendChild(e.conn.host); // park it; keep alive + in-DOM
 }
 
+export function refit(id: string): void {
+  sessions.get(id)?.conn.fit();
+}
+
 export function dispose(id: string): void {
   const e = sessions.get(id);
   if (!e) return;
