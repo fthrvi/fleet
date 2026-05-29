@@ -20,7 +20,6 @@ export default async function AppDetailPage({ params }: { params: Promise<{ slug
     }),
     db.installedApp.findMany({
       where: { slug },
-      include: { /* */ },
       orderBy: { installedAt: "desc" },
     }),
   ]);

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { createChannel } from "@/actions/notifications";
 
-const SCAFFOLDS: Record<string, string> = {
+const SCAFFOLDS = {
   discord: `{\n  "webhookUrl": "https://discord.com/api/webhooks/..."\n}`,
   slack: `{\n  "webhookUrl": "https://hooks.slack.com/services/..."\n}`,
   pushover: `{\n  "userKey": "u...",\n  "appToken": "a..."\n}`,

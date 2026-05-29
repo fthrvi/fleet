@@ -7,9 +7,7 @@ import { Badge } from "@/components/ui/badge";
 export const dynamic = "force-dynamic";
 
 export default async function AppsPage() {
-  const installed = await db.installedApp.findMany({
-    include: { /* nothing — we just need slugs + machineId */ },
-  });
+  const installed = await db.installedApp.findMany();
   const installedBySlug = new Map<string, number>();
   for (const i of installed) installedBySlug.set(i.slug, (installedBySlug.get(i.slug) ?? 0) + 1);
 
