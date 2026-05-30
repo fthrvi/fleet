@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { Nav } from "@/components/Nav";
 
 export const metadata: Metadata = {
-  title: "Lab Fleet",
+  title: "Yantra",
   description: "Private compute coordinator for your homelab",
 };
 

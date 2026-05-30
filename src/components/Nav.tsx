@@ -21,7 +21,7 @@ export function Nav({ items }: Props) {
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4">
         <div className="flex items-center gap-2">
           <Link href="/" className="text-lg font-semibold tracking-tight">
-            Lab Fleet
+            Yantra
           </Link>
         </div>
 

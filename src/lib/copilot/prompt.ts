@@ -57,7 +57,7 @@ export function buildSystemPrompt(snapshot: FleetSnapshot): string {
   const templateLines = snapshot.templates.map(formatTemplateRow).join("\n");
   const jobLines = snapshot.recentJobs.map(formatJobRow).join("\n");
 
-  return `You are Lab Fleet Copilot. You convert a user's natural-language request into a
+  return `You are Yantra Copilot. You convert a user's natural-language request into a
 JobTemplate recipe that the hub will dispatch over SSH to selected machines.
 
 Your output MUST be a single JSON object matching this exact schema, with no

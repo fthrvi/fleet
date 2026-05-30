@@ -2,17 +2,17 @@
 # One-line installer for a fresh hub (macOS or Linux).
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/fthrvi/fleet/main/scripts/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/fthrvi/yantra/main/scripts/install.sh | bash
 #   or:  bash scripts/install.sh
 #
 # Idempotent — re-running upgrades.
 
 set -e
 
-REPO_URL="${REPO_URL:-https://github.com/fthrvi/fleet.git}"
+REPO_URL="${REPO_URL:-https://github.com/fthrvi/yantra.git}"
 INSTALL_DIR="${INSTALL_DIR:-$HOME/fleet}"
 
-echo "==> Lab Fleet installer"
+echo "==> Yantra installer"
 echo "    target: $INSTALL_DIR"
 
 # Prereqs
@@ -25,7 +25,7 @@ if ! command -v git >/dev/null; then
   exit 1
 fi
 if ! command -v tailscale >/dev/null; then
-  echo "WARNING: tailscale CLI not on PATH. Lab Fleet relies on Tailscale for machine discovery."
+  echo "WARNING: tailscale CLI not on PATH. Yantra relies on Tailscale for machine discovery."
 fi
 
 # Clone (or pull)
@@ -56,7 +56,7 @@ npx prisma db push --skip-generate >/dev/null
 # Ensure SSH key for hub→worker direction exists (will be added to workers later via /setup)
 if [ ! -f "$HOME/.ssh/id_ed25519" ]; then
   echo "==> Generating SSH key for the hub"
-  ssh-keygen -t ed25519 -N "" -f "$HOME/.ssh/id_ed25519" -C "lab-fleet-hub"
+  ssh-keygen -t ed25519 -N "" -f "$HOME/.ssh/id_ed25519" -C "yantra-hub"
 fi
 
 echo ""

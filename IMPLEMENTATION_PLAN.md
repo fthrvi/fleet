@@ -1,6 +1,6 @@
-# Lab Fleet — Implementation Plan
+# Yantra — Implementation Plan
 
-A living roadmap for taking Lab Fleet from "useful internal tool" to "homeserver dashboard people star on GitHub." Updated after each shipped milestone.
+A living roadmap for taking Yantra from "useful internal tool" to "homeserver dashboard people star on GitHub." Updated after each shipped milestone.
 
 ---
 
@@ -77,7 +77,7 @@ Lower priority. Build only if a real use case surfaces.
 - [ ] **Docker Compose stacks** — beyond single-app installs, manage multi-service stacks.
 - [ ] **HTTPS via Tailscale Funnel** — expose the dashboard publicly (with proper auth) if user wants remote access without Tailscale client.
 - [ ] **Web-based file browser** — read a worker's filesystem via SSH SFTP, surfaced as a tree view.
-- [ ] **Plugin system** — drop-in JS files in `~/lab-fleet/plugins/` that register new runner kinds.
+- [ ] **Plugin system** — drop-in JS files in `~/yantra/plugins/` that register new runner kinds.
 
 ---
 
@@ -132,7 +132,7 @@ full run.
 ### Coordination gotchas to avoid
 
 - **Mixed claim-aware and non-claim-aware workers double-process work.**
-  If part of your fleet runs through Lab Fleet's claim coordinator and part
+  If part of your fleet runs through Yantra's claim coordinator and part
   runs through a legacy shell loop that just checks "has output file been
   written," two machines can race the same input. Pick one model and stick
   with it.
@@ -145,7 +145,7 @@ full run.
   dashboard under `env -i` or similar, Probe + Terminal break because
   node-ssh / ssh2 can't unlock a passphrase-protected key. Preserve
   `SSH_AUTH_SOCK` (or generate a dedicated passphrase-less key for
-  Lab Fleet).
+  Yantra).
 
 ### Recipe for a smooth big run
 

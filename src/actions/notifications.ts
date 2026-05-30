@@ -44,7 +44,7 @@ export async function testChannel(id: number) {
       trigger: "jobSucceeded",
       level: "info",
       title: "🧪 Test notification",
-      message: `Hello from lab-fleet · channel '${ch.name}' (${ch.kind})`,
+      message: `Hello from yantra · channel '${ch.name}' (${ch.kind})`,
     });
     return { ok: true as const };
   } catch (err) {

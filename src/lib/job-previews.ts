@@ -64,7 +64,7 @@ export function buildTranscribeCommand(
   // Build the remote command chain. The subshell-wrap around the nohup line
   // is load-bearing: `nohup ... & && next` is a zsh/bash parse error, so we
   // wrap in `( ... & )` to keep the trailing & from colliding with the join's
-  // `&&`. See [[Lab Fleet]] memory for the bug history.
+  // `&&`. See [[Yantra]] memory for the bug history.
   const remoteCmd = [
     `chmod +x ~/worker.sh`,
     `ssh-keyscan -t ed25519 ${hubHost} 2>/dev/null >> ~/.ssh/known_hosts || true`,

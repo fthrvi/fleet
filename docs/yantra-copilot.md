@@ -1,8 +1,8 @@
-# Lab Fleet Copilot — Chat-to-Recipe Design Doc
+# Yantra Copilot — Chat-to-Recipe Design Doc
 
 **Status:** Draft · 2026-05-17
 **Author:** Initial sketch via Claude session
-**Scope:** A `/copilot` route on the Lab Fleet dashboard that converts natural-language requests ("transcribe the MP3s in ~/Downloads/foo across the lab") into a validated `JobTemplate` recipe, dry-renders the actual shell commands, optionally runs on a single host as a smoke test, and only then dispatches to the full target set.
+**Scope:** A `/copilot` route on the Yantra dashboard that converts natural-language requests ("transcribe the MP3s in ~/Downloads/foo across the lab") into a validated `JobTemplate` recipe, dry-renders the actual shell commands, optionally runs on a single host as a smoke test, and only then dispatches to the full target set.
 
 ---
 
@@ -116,7 +116,7 @@ interface FleetSnapshot {
 ### 4.2 System prompt template
 
 ```
-You are Lab Fleet Copilot. Your job is to convert a user's natural-language
+You are Yantra Copilot. Your job is to convert a user's natural-language
 request into a JobTemplate recipe that the hub will dispatch.
 
 You can ONLY produce output matching the JSON schema below. Do NOT explain.
@@ -214,12 +214,12 @@ Start with **mac3-2**. When it's busy with transcription, fall back to **mac4** 
 
 Present on at least mac3-2 and bishwa. The inventory probe (§6) confirms across the fleet.
 
-### 5.3 Launch script — `~/lab-fleet/scripts/start-copilot-server.sh`
+### 5.3 Launch script — `~/yantra/scripts/start-copilot-server.sh`
 
 ```bash
 #!/bin/bash
 # Starts llama-server with Qwen3-Coder-30B-A3B + draft model on the local box.
-# Run via Lab Fleet `nakshatra-start-worker`-style dispatch, or by hand.
+# Run via Yantra `nakshatra-start-worker`-style dispatch, or by hand.
 
 set -euo pipefail
 
@@ -240,7 +240,7 @@ exec nice -n 10 ~/llama.cpp/build/bin/llama-server \
   --log-disable
 ```
 
-### 5.4 Lab Fleet template for it
+### 5.4 Yantra template for it
 
 New template `start-copilot-llama-server` (kind=`shell`) that runs the script above on the chosen host. Becomes the first thing the user clicks before using `/copilot` in a session.
 
@@ -277,7 +277,7 @@ ALTER TABLE "Machine" ADD COLUMN "inventoryUpdatedAt" DATETIME;
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
-│  Lab Fleet Copilot                       Inference: mac3-2 ✓     │
+│  Yantra Copilot                       Inference: mac3-2 ✓     │
 ├──────────────────────────────────────────────────────────────────┤
 │                                                                  │
 │  [Chat input — autofocus, multiline]                             │
@@ -363,4 +363,4 @@ Total: ~1 work-day.
 - **2026-05-17 — Single-host inference over Nakshatra distributed.** Chat outputs are small JSON; gRPC hops would dominate per-token latency. Save Nakshatra for the 70B prod chain.
 - **2026-05-17 — Qwen3-Coder-30B-A3B (Q4_K_XL).** Already on disk on at least mac3-2 + bishwa. MoE = fast inference. Coder-tuned = good at structured JSON.
 - **2026-05-17 — GBNF grammar-constrained output instead of "please return JSON".** Eliminates the parse-failure class of bugs entirely.
-- **2026-05-17 — No auto-run, ever.** Every dispatch is user-initiated, even after model proposal. Lab Fleet's blast radius is multi-machine; a slip is expensive.
+- **2026-05-17 — No auto-run, ever.** Every dispatch is user-initiated, even after model proposal. Yantra's blast radius is multi-machine; a slip is expensive.

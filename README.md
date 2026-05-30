@@ -1,4 +1,4 @@
-# Lab Fleet
+# Yantra
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Next.js](https://img.shields.io/badge/Next.js-15-black?logo=next.js)](https://nextjs.org)
@@ -33,7 +33,7 @@
 
 ## Why
 
-Existing tools are either too heavy (Rundeck, SaltStack) or too narrow (Tailscale alone, Portainer alone). Lab Fleet sits in the middle:
+Existing tools are either too heavy (Rundeck, SaltStack) or too narrow (Tailscale alone, Portainer alone). Yantra sits in the middle:
 
 - Enough structure to be useful for repeatable work (templates, workflows, schedules, history)
 - Few enough moving parts to host on a single Mac mini
@@ -103,7 +103,7 @@ flowchart TB
 
 ### Compared to other tools
 
-| | Portainer | Rundeck | Tailscale alone | **Lab Fleet** |
+| | Portainer | Rundeck | Tailscale alone | **Yantra** |
 |---|---|---|---|---|
 | Docker UI | ✅ | ❌ | ❌ | ✅ |
 | SSH job runner | ❌ | ✅ | ❌ | ✅ |
@@ -121,8 +121,8 @@ flowchart TB
 ## Install
 
 ```bash
-git clone https://github.com/fthrvi/fleet.git ~/fleet
-cd ~/fleet
+git clone https://github.com/fthrvi/yantra.git ~/yantra
+cd ~/yantra
 npm install
 cp .env.example .env       # edit if you want to override defaults
 npx prisma db push          # create the SQLite schema
@@ -132,7 +132,7 @@ npm run dev                 # http://$(tailscale ip -4):3001
 Or one-line bootstrap:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/fthrvi/fleet/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/fthrvi/yantra/main/scripts/install.sh | bash
 ```
 
 The dashboard binds to your Tailscale IP — reachable from any device on your Tailnet, not exposed publicly.
@@ -195,20 +195,20 @@ After install, the dashboard shows running ports and an "Open :8088" button that
 ### macOS — LaunchAgent
 
 ```bash
-cp scripts/launchd-template.plist ~/Library/LaunchAgents/dev.labfleet.hub.plist
+cp scripts/launchd-template.plist ~/Library/LaunchAgents/dev.yantra.hub.plist
 # edit YOUR_USERNAME + paths inside
-launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/dev.labfleet.hub.plist
-launchctl print gui/$(id -u)/dev.labfleet.hub
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/dev.yantra.hub.plist
+launchctl print gui/$(id -u)/dev.yantra.hub
 ```
 
 ### Linux — systemd
 
 ```bash
-sudo cp scripts/systemd-template.service /etc/systemd/system/lab-fleet.service
+sudo cp scripts/systemd-template.service /etc/systemd/system/yantra.service
 # edit User + WorkingDirectory inside
 sudo systemctl daemon-reload
-sudo systemctl enable --now lab-fleet
-journalctl -u lab-fleet -f
+sudo systemctl enable --now yantra
+journalctl -u yantra -f
 ```
 
 ---
@@ -226,7 +226,7 @@ journalctl -u lab-fleet -f
 ## Project layout
 
 ```
-fleet/
+yantra/
 ├── README.md, LICENSE, IMPLEMENTATION_PLAN.md, .env.example
 ├── prisma/schema.prisma          # 13 models
 ├── data/                         # SQLite + backups + uploads (gitignored)
@@ -259,8 +259,8 @@ Issues and PRs welcome. A few easy starter ideas:
 Local dev:
 
 ```bash
-git clone https://github.com/fthrvi/fleet.git
-cd fleet
+git clone https://github.com/fthrvi/yantra.git
+cd yantra
 npm install
 cp .env.example .env
 npx prisma db push

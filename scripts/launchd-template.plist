@@ -1,25 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Lab Fleet LaunchAgent template (macOS).
+  Yantra LaunchAgent template (macOS).
 
   Install:
     1. Edit the two YOUR_USERNAME placeholders below.
-    2. Edit Program / WorkingDirectory to point at your lab-fleet checkout.
-    3. Copy to ~/Library/LaunchAgents/dev.labfleet.hub.plist
-    4. launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/dev.labfleet.hub.plist
-    5. launchctl print gui/$(id -u)/dev.labfleet.hub  (verify state=running)
+    2. Edit Program / WorkingDirectory to point at your yantra checkout.
+    3. Copy to ~/Library/LaunchAgents/dev.yantra.hub.plist
+    4. launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/dev.yantra.hub.plist
+    5. launchctl print gui/$(id -u)/dev.yantra.hub  (verify state=running)
 
   Uninstall:
-    launchctl bootout gui/$(id -u) ~/Library/LaunchAgents/dev.labfleet.hub.plist
+    launchctl bootout gui/$(id -u) ~/Library/LaunchAgents/dev.yantra.hub.plist
 -->
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
   <key>Label</key>
-  <string>dev.labfleet.hub</string>
+  <string>dev.yantra.hub</string>
 
   <key>WorkingDirectory</key>
-  <string>/Users/YOUR_USERNAME/lab-fleet</string>
+  <string>/Users/YOUR_USERNAME/yantra</string>
 
   <key>ProgramArguments</key>
   <array>
@@ -43,9 +43,9 @@
   <true/>
 
   <key>StandardOutPath</key>
-  <string>/Users/YOUR_USERNAME/lab-fleet/logs/stdout.log</string>
+  <string>/Users/YOUR_USERNAME/yantra/logs/stdout.log</string>
 
   <key>StandardErrorPath</key>
-  <string>/Users/YOUR_USERNAME/lab-fleet/logs/stderr.log</string>
+  <string>/Users/YOUR_USERNAME/yantra/logs/stderr.log</string>
 </dict>
 </plist>

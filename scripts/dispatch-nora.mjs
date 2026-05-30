@@ -1,7 +1,7 @@
 // One-off dispatcher: run the nora text-extraction as a real hub Job so it
 // shows on the dashboard with live logs. Shards are already staged on the
 // workers (~/endnote-nora/worker-N); process_shard.py is idempotent and resumes.
-// Run from the lab-fleet repo root:  node scripts/dispatch-nora.mjs
+// Run from the yantra repo root:  node scripts/dispatch-nora.mjs
 import { PrismaClient } from "@prisma/client";
 import { spawn } from "node:child_process";
 import os from "node:os";

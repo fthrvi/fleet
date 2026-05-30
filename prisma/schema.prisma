@@ -1,4 +1,4 @@
-// Lab Fleet — private compute coordinator.
+// Yantra — private compute coordinator.
 // SQLite for portability: the entire DB lives at ./data/lab.db.
 
 generator client {

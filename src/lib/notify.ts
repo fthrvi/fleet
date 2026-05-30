@@ -72,7 +72,7 @@ async function sendDiscord(webhookUrl: string, p: NotifyPayload) {
     description: p.message,
     color: COLORS[p.level ?? "info"],
     timestamp: new Date().toISOString(),
-    footer: { text: "lab-fleet" },
+    footer: { text: "yantra" },
   };
   if (p.url) embed.url = p.url;
   const res = await fetch(webhookUrl, {
@@ -114,7 +114,7 @@ async function sendPushover(userKey: string, appToken: string, p: NotifyPayload)
 }
 
 async function sendMacOS(p: NotifyPayload) {
-  // Trigger a native banner via osascript. Works because lab-fleet runs on
+  // Trigger a native banner via osascript. Works because yantra runs on
   // the hub Mac (it's a homeserver, so it sees the user's notification centre).
   const script = `display notification ${JSON.stringify(p.message)} with title ${JSON.stringify(p.title)} sound name "Glass"`;
   await execFile("osascript", ["-e", script]);

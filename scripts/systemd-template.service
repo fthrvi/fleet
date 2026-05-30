@@ -1,24 +1,24 @@
-# Lab Fleet systemd unit template (Linux).
+# Yantra systemd unit template (Linux).
 #
 # Install:
 #   1. Edit User= and WorkingDirectory= for your environment.
-#   2. sudo cp scripts/systemd-template.service /etc/systemd/system/lab-fleet.service
+#   2. sudo cp scripts/systemd-template.service /etc/systemd/system/yantra.service
 #   3. sudo systemctl daemon-reload
-#   4. sudo systemctl enable --now lab-fleet
-#   5. systemctl status lab-fleet
+#   4. sudo systemctl enable --now yantra
+#   5. systemctl status yantra
 #
-# Logs:   journalctl -u lab-fleet -f
+# Logs:   journalctl -u yantra -f
 
 [Unit]
-Description=Lab Fleet — private compute coordinator
-Documentation=https://github.com/fthrvi/fleet
+Description=Yantra — private compute coordinator
+Documentation=https://github.com/fthrvi/yantra
 After=network-online.target tailscaled.service
 Wants=network-online.target
 
 [Service]
 Type=simple
 User=YOUR_USERNAME
-WorkingDirectory=/home/YOUR_USERNAME/lab-fleet
+WorkingDirectory=/home/YOUR_USERNAME/yantra
 ExecStart=/usr/bin/npm run start
 Environment="NODE_ENV=production"
 Environment="PATH=/usr/local/bin:/usr/bin:/bin"

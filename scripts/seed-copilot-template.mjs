@@ -2,7 +2,7 @@
 // with Qwen3-Coder-30B-A3B on the target machine. Idempotent — re-running
 // updates the recipe in place.
 //
-// Run from ~/lab-fleet:
+// Run from ~/yantra:
 //   node scripts/seed-copilot-template.mjs
 
 import { PrismaClient } from "@prisma/client";

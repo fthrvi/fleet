@@ -2,7 +2,7 @@
 # start-copilot-server.sh — boot llama-server with Qwen3-Coder-30B-A3B
 # (plus the 1.7B draft model for speculative decoding) on the local host.
 #
-# Run via Lab Fleet `start-copilot-llama-server` template, or by hand:
+# Run via Yantra `start-copilot-llama-server` template, or by hand:
 #
 #   ssh midev@mac3-2.tail583a2d.ts.net 'bash -s' < scripts/start-copilot-server.sh
 #
